@@ -33,7 +33,7 @@ export function formatSummary(result: ScanResult): string {
   const lines: string[] = [];
 
   lines.push("");
-  lines.push(`${BOLD}🔍 audit-kit${RESET}`);
+  lines.push(`${BOLD}🔍 ship-check${RESET}`);
   lines.push("");
 
   const totalFindings = result.results.reduce((sum, r) => sum + r.findings.length, 0);
@@ -103,7 +103,7 @@ export function formatVerbose(result: ScanResult): string {
   const lines: string[] = [];
 
   lines.push("");
-  lines.push(`${BOLD}🔍 audit-kit${RESET}`);
+  lines.push(`${BOLD}🔍 ship-check${RESET}`);
   lines.push("");
 
   for (const dr of result.results) {
@@ -145,7 +145,7 @@ export function formatVerbose(result: ScanResult): string {
 export function formatMarkdown(result: ScanResult): string {
   const lines: string[] = [];
 
-  lines.push("# audit-kit report");
+  lines.push("# ship-check report");
   lines.push("");
 
   const totalFindings = result.results.reduce((s, r) => s + r.findings.length, 0);

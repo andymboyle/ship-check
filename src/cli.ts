@@ -39,10 +39,10 @@ const rootDir = pathArgs[0] ?? process.cwd();
 
 if (helpMode) {
   console.log(`
-  audit-kit — find silent errors, missing timeouts, and query problems in your codebase
+  ship-check — find silent errors, missing timeouts, and query problems in your codebase
 
   Usage:
-    npx audit-kit [detectors...] [path] [options]
+    npx ship-check [detectors...] [path] [options]
 
   Detectors:
 ${listDetectors().map((d) => `    ${d.id.padEnd(22)} ${d.description}`).join("\n")}
@@ -59,13 +59,13 @@ ${listDetectors().map((d) => `    ${d.id.padEnd(22)} ${d.description}`).join("\n
     -h, --help              Show this help message
 
   Examples:
-    npx audit-kit                              Run all detectors (summary)
-    npx audit-kit silent-errors                Run one detector
-    npx audit-kit --verbose                    Full details
-    npx audit-kit --only=silent-errors --only=missing-timeouts
-    npx audit-kit src/api/                     Scan a specific directory
-    npx audit-kit --md > audit-report.md       Save a report
-    npx audit-kit --ci --severity=HIGH         Fail CI on HIGH findings
+    npx ship-check                              Run all detectors (summary)
+    npx ship-check silent-errors                Run one detector
+    npx ship-check --verbose                    Full details
+    npx ship-check --only=silent-errors --only=missing-timeouts
+    npx ship-check src/api/                     Scan a specific directory
+    npx ship-check --md > audit-report.md       Save a report
+    npx ship-check --ci --severity=HIGH         Fail CI on HIGH findings
 
   Exit codes:
     0  Scan completed (default)

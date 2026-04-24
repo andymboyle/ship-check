@@ -1,5 +1,5 @@
 {
-  "name": "audit-kit",
+  "name": "ship-check",
   "version": "0.1.0",
   "description": "Find silent errors, missing timeouts, unbounded queries, and raw error leaks in your codebase. Zero dependencies.",
   "type": "module",
@@ -7,7 +7,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "audit-kit": "./dist/cli.js"
+    "ship-check": "./dist/cli.js"
   },
   "exports": {
     ".": {
@@ -42,7 +42,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/andymboyle/audit-kit"
+    "url": "https://github.com/andymboyle/ship-check"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
