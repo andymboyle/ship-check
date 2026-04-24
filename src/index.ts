@@ -3,7 +3,6 @@ export { formatSummary, formatVerbose, formatJSON, formatMarkdown } from "./form
 export type {
   Finding,
   Severity,
-  Detector,
   DetectorResult,
   ScanOptions,
   ScanResult,

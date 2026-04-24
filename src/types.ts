@@ -18,14 +18,6 @@ export interface DetectorResult {
   findings: Finding[];
 }
 
-export interface Detector {
-  id: string;
-  name: string;
-  description: string;
-  languages: string[];
-  run(rootDir: string): DetectorResult;
-}
-
 export interface ScanOptions {
   rootDir?: string;
   /** Which detectors to run (by id). Default: all */

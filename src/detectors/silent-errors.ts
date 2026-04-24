@@ -1,4 +1,5 @@
-import type { Detector, DetectorResult, Finding, Severity } from "../types";
+import { isJsFile } from "../constants";
+import type { DetectorResult, Finding } from "../types";
 import type { SourceFile } from "../walker";
 
 /**
@@ -15,7 +16,7 @@ export function detectSilentErrors(files: SourceFile[]): DetectorResult {
 
     if (file.ext === ".py") {
       findings.push(...detectPythonSilentErrors(file));
-    } else if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(file.ext)) {
+    } else if (isJsFile(file.ext)) {
       findings.push(...detectJsSilentErrors(file));
     } else if (file.ext === ".go") {
       findings.push(...detectGoSilentErrors(file));
@@ -308,13 +309,3 @@ function detectGoSilentErrors(file: SourceFile): Finding[] {
   return findings;
 }
 
-export const silentErrorsDetector: Detector = {
-  id: "silent-errors",
-  name: "Silent Error Swallowing",
-  description: "Find catch/except blocks that hide failures — empty blocks, pass, returns without logging",
-  languages: ["python", "javascript", "typescript", "go"],
-  run(rootDir: string) {
-    // This is wired up by the scanner, not called directly
-    throw new Error("Use detectSilentErrors(files) instead");
-  },
-};

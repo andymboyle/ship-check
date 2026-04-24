@@ -1,3 +1,4 @@
+import { isJsFile } from "../constants";
 import type { DetectorResult, Finding } from "../types";
 import type { SourceFile } from "../walker";
 
@@ -13,7 +14,7 @@ export function detectUnhandledAsync(files: SourceFile[]): DetectorResult {
   for (const file of files) {
     if (file.isTest) continue;
 
-    if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(file.ext)) {
+    if (isJsFile(file.ext)) {
       findings.push(...detectJsUnhandledAsync(file));
     } else if (file.ext === ".py") {
       findings.push(...detectPythonUnhandledAsync(file));
@@ -130,9 +131,3 @@ function detectPythonUnhandledAsync(file: SourceFile): Finding[] {
   return findings;
 }
 
-export const unhandledAsyncDetector = {
-  id: "unhandled-async",
-  name: "Unhandled Async Errors",
-  description: "Fire-and-forget promises, async handlers without error catching",
-  languages: ["javascript", "typescript", "python"],
-};

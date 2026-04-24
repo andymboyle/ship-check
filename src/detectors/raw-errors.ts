@@ -1,4 +1,4 @@
-import type { Detector, DetectorResult, Finding } from "../types";
+import type { DetectorResult, Finding } from "../types";
 import type { SourceFile } from "../walker";
 
 /**
@@ -38,8 +38,8 @@ function detectJsRawErrors(file: SourceFile): Finding[] {
     const trimmed = lines[i].trim();
 
     // error.message in JSX (rendered to users)
-    // Patterns: {error.message}, {err.message}, {e.message} inside JSX
-    if (/\{[^}]*\b(error|err|e)\.message\b[^}]*\}/.test(trimmed)) {
+    // Only match explicit error variable names — "e" is too broad (could be event, email, etc.)
+    if (/\{[^}]*\b(error|err)\.message\b[^}]*\}/.test(trimmed)) {
       // Check if this is in a JSX/template context (not just logging)
       // Look for surrounding JSX indicators
       const context = lines.slice(Math.max(0, i - 5), Math.min(i + 5, lines.length)).join("\n");
@@ -59,7 +59,7 @@ function detectJsRawErrors(file: SourceFile): Finding[] {
     }
 
     // error.stack in UI
-    if (/\{[^}]*\b(error|err|e)\.stack\b[^}]*\}/.test(trimmed)) {
+    if (/\{[^}]*\b(error|err)\.stack\b[^}]*\}/.test(trimmed)) {
       findings.push({
         detector: "raw-errors",
         severity: "HIGH",
@@ -73,7 +73,7 @@ function detectJsRawErrors(file: SourceFile): Finding[] {
 
     // toast/notification with error.message
     if (/\b(toast|notify|notification|alert|showError|addToast)\s*\(/.test(trimmed)) {
-      if (/\b(error|err|e)\.(message|toString\(\))/.test(trimmed)) {
+      if (/\b(error|err)\.(message|toString\(\))/.test(trimmed)) {
         findings.push({
           detector: "raw-errors",
           severity: "MEDIUM",
@@ -87,7 +87,7 @@ function detectJsRawErrors(file: SourceFile): Finding[] {
     }
 
     // JSON response with raw error
-    if (/\bres\.(json|send|status)\b.*\b(error|err|e)\.(message|stack)/.test(trimmed)) {
+    if (/\bres\.(json|send|status)\b.*\b(error|err)\.(message|stack)/.test(trimmed)) {
       findings.push({
         detector: "raw-errors",
         severity: "MEDIUM",
@@ -100,7 +100,7 @@ function detectJsRawErrors(file: SourceFile): Finding[] {
     }
 
     // String interpolation with error in user-facing strings
-    if (/`[^`]*\$\{[^}]*(error|err|e)\.(message|stack)[^}]*\}[^`]*`/.test(trimmed)) {
+    if (/`[^`]*\$\{[^}]*(error|err)\.(message|stack)[^}]*\}[^`]*`/.test(trimmed)) {
       const context = lines.slice(Math.max(0, i - 3), Math.min(i + 3, lines.length)).join("\n");
       const isUiFacing = /\b(toast|alert|modal|render|return\s*\(|<\w|innerHTML|textContent)\b/.test(context);
       if (isUiFacing) {
@@ -180,12 +180,3 @@ function detectPythonRawErrors(file: SourceFile): Finding[] {
   return findings;
 }
 
-export const rawErrorsDetector: Detector = {
-  id: "raw-errors",
-  name: "Raw Error Leaks",
-  description: "Find technical error messages, stack traces, and tracebacks shown to users",
-  languages: ["python", "javascript", "typescript"],
-  run(rootDir: string) {
-    throw new Error("Use detectRawErrors(files) instead");
-  },
-};

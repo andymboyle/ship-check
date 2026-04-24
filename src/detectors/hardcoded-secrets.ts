@@ -107,6 +107,8 @@ const IGNORE_CONTEXTS = [
   /config\.\w+/,              // Config object access
   /placeholder|example|dummy|fake|test|sample|mock|changeme|your[_-]/i,
   /TODO|FIXME|REPLACE/i,
+  /password[_-]?(min|max|length|policy|regex|pattern|hash|salt|format|strength|rule|require)/i,
+  /\btype\s*[:=]/,             // Type annotations/definitions, not values
 ];
 
 function detectSecretPatterns(file: SourceFile): Finding[] {
@@ -161,9 +163,3 @@ function detectSecretPatterns(file: SourceFile): Finding[] {
   return findings;
 }
 
-export const hardcodedSecretsDetector = {
-  id: "hardcoded-secrets",
-  name: "Hardcoded Secrets",
-  description: "API keys, tokens, passwords, and secrets committed in source code",
-  languages: ["all"],
-};

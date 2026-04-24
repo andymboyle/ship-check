@@ -1,4 +1,5 @@
-import type { Detector, DetectorResult, Finding } from "../types";
+import { isJsFile } from "../constants";
+import type { DetectorResult, Finding } from "../types";
 import type { SourceFile } from "../walker";
 
 /**
@@ -13,7 +14,7 @@ export function detectUnboundedQueries(files: SourceFile[]): DetectorResult {
   for (const file of files) {
     if (file.isTest) continue;
 
-    if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(file.ext)) {
+    if (isJsFile(file.ext)) {
       findings.push(...detectJsQueryIssues(file));
     } else if (file.ext === ".py") {
       findings.push(...detectPythonQueryIssues(file));
@@ -194,12 +195,3 @@ function detectPythonQueryIssues(file: SourceFile): Finding[] {
   return findings;
 }
 
-export const unboundedQueriesDetector: Detector = {
-  id: "unbounded-queries",
-  name: "Unbounded Queries",
-  description: "Find queries without pagination, N+1 loops, and column over-fetching",
-  languages: ["python", "javascript", "typescript"],
-  run(rootDir: string) {
-    throw new Error("Use detectUnboundedQueries(files) instead");
-  },
-};

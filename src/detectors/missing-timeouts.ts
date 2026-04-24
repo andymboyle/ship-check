@@ -1,4 +1,5 @@
-import type { Detector, DetectorResult, Finding } from "../types";
+import { isJsFile } from "../constants";
+import type { DetectorResult, Finding } from "../types";
 import type { SourceFile } from "../walker";
 
 /**
@@ -13,7 +14,7 @@ export function detectMissingTimeouts(files: SourceFile[]): DetectorResult {
 
     if (file.ext === ".py") {
       findings.push(...detectPythonTimeouts(file));
-    } else if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(file.ext)) {
+    } else if (isJsFile(file.ext)) {
       findings.push(...detectJsTimeouts(file));
     } else if (file.ext === ".go") {
       findings.push(...detectGoTimeouts(file));
@@ -214,12 +215,3 @@ function detectGoTimeouts(file: SourceFile): Finding[] {
   return findings;
 }
 
-export const missingTimeoutsDetector: Detector = {
-  id: "missing-timeouts",
-  name: "Missing Timeouts",
-  description: "Find HTTP clients, SDK calls, and DB connections without timeout configuration",
-  languages: ["python", "javascript", "typescript", "go"],
-  run(rootDir: string) {
-    throw new Error("Use detectMissingTimeouts(files) instead");
-  },
-};
