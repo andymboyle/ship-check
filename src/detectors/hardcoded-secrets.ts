@@ -118,6 +118,12 @@ const IGNORE_CONTEXTS = [
   /\$\{/,                      // Template variable references: "${VAR}"
   /\#\{/,                      // Ruby string interpolation: "#{SecureRandom.hex}"
   /SecureRandom|crypto\.random|uuid/i, // Dynamically generated values
+  /\bsearch[_-]?only\b/i,     // Algolia search-only keys (designed to be public)
+  /\balgolia\b/i,              // Algolia config (search keys are public)
+  /\bdocsearch\b/i,            // DocSearch config (public search key)
+  /\bposthog\b/i,              // PostHog project keys (designed to be public/client-side)
+  /\bsentry.*dsn\b/i,          // Sentry DSNs (designed to be public)
+  /\bphc_/,                    // PostHog key prefix (public by design)
 ];
 
 function detectSecretPatterns(file: SourceFile): Finding[] {

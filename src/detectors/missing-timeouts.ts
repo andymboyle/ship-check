@@ -177,19 +177,42 @@ function detectJsTimeouts(file: SourceFile): Finding[] {
 
       if (p.timeoutIndicators.some((t) => context.includes(t))) continue;
 
-      // For fetch: skip tRPC client calls, same-origin/internal calls, and asset fetches
+      // For fetch: extensive filtering to reduce false positives
       if (p.service === "fetch") {
-        // tRPC .fetch() calls (e.g., utils.viewer.bookings.find.fetch)
+        // Not an actual fetch() call — method on another object (.fetch() as data loader)
         if (/\w+\.\w+\.fetch\s*\(/.test(trimmed) && !/\bfetch\s*\(["'`]/.test(trimmed)) continue;
-        // Fetching local/internal URLs (own webapp, /api/, /fonts/)
-        if (/fetch\s*\(\s*["'`]\/(api|fonts|static|assets)/.test(trimmed)) continue;
-        if (/fetch\s*\(\s*["'`]\.\//.test(trimmed)) continue;
-        // Font/image loading patterns
-        if (/\.(ttf|woff|woff2|otf|png|jpg|svg)\b/.test(trimmed)) continue;
-        // tRPC createClient setup (no actual network call)
-        if (/createClient\s*\(/.test(trimmed)) continue;
-        // fetch() mentioned inside a string literal (not an actual call)
+        // Bun.serve / CF Worker fetch handler (request handler, not outbound call)
+        if (/\bfetch\s*\(\s*(request|req)\b/.test(trimmed)) continue;
+        // fetch() inside a string literal, comment, or type declaration
         if (/["'`].*fetch\s*\(.*["'`]/.test(trimmed)) continue;
+        if (/createClient\s*\(/.test(trimmed)) continue;
+        if (/declare\s/.test(trimmed) || /:\s*\(/.test(trimmed)) continue;
+
+        // Relative/same-origin URLs — browser or internal, low risk
+        if (/fetch\s*\(\s*["'`]\//.test(trimmed)) continue;  // fetch("/api/...")
+        if (/fetch\s*\(\s*["'`]\.\//.test(trimmed)) continue; // fetch("./data")
+        // Template literals with relative URLs
+        if (/fetch\s*\(\s*`\$\{.*\}\//.test(trimmed) && !/https?:/.test(trimmed)) continue;
+
+        // Font/image/asset loading
+        if (/\.(ttf|woff|woff2|otf|png|jpg|svg|css)\b/.test(trimmed)) continue;
+
+        // Only flag as HIGH if URL is explicitly external (https://...)
+        // or if we're in server-side code (no browser safety net)
+        const isExternalUrl = /fetch\s*\(\s*["'`]https?:\/\//.test(trimmed);
+        const isUrlVariable = /fetch\s*\(\s*[a-zA-Z]/.test(trimmed) && !/fetch\s*\(\s*(request|req|input)\b/.test(trimmed);
+
+        if (!file.isServerSide && !isExternalUrl) {
+          // Browser-side fetch to non-explicit URL — skip entirely
+          // Browser has its own timeout behavior
+          continue;
+        }
+      }
+
+      // For axios: same-origin patterns
+      if (p.service === "axios" || p.service === "axios.create") {
+        // Skip if no external URL visible (axios to own backend is low risk in browser)
+        if (!file.isServerSide && !/https?:\/\//.test(context)) continue;
       }
 
       // For Redis createClient: require redis import context (not trpc/graphql createClient)
@@ -228,13 +251,19 @@ function detectGoTimeouts(file: SourceFile): Finding[] {
     if (/&?http\.Client\s*\{/.test(line)) {
       const context = lines.slice(i, Math.min(i + 5, lines.length)).join(" ");
       if (!context.includes("Timeout")) {
+        // Check if context-based timeout is used nearby (Go pattern: context.WithTimeout)
+        const surroundingContext = lines.slice(Math.max(0, i - 10), Math.min(i + 15, lines.length)).join(" ");
+        if (/context\.With(Timeout|Deadline)/.test(surroundingContext)) continue;
+        // Skip if Timeout is explicitly set to 0 (intentional — using context for cancellation)
+        if (/Timeout:\s*0\b/.test(context)) continue;
+
         findings.push({
           detector: "missing-timeouts",
           severity: "HIGH",
           file: relPath,
           line: i + 1,
           message: "http.Client without Timeout — defaults to no timeout",
-          fix: "Add Timeout: 30 * time.Second",
+          fix: "Add Timeout: 30 * time.Second, or use context.WithTimeout for per-request timeouts",
           source: line.trim(),
         });
       }

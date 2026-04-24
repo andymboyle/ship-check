@@ -45,21 +45,24 @@ export interface SourceFile {
   lines: string[];
   /** File extension (e.g. ".ts") */
   ext: string;
-  /** Whether this file is a test/spec/e2e file */
+  /** Whether this file is a test/spec/e2e/example file */
   isTest: boolean;
+  /** Whether this file appears to be server-side (Node/backend) vs browser/frontend */
+  isServerSide: boolean;
 }
 
 /**
- * Check if a file path indicates a test file or non-production code.
+ * Check if a file path indicates a test, example, or non-production code.
  */
 export function isTestFile(relPath: string): boolean {
-  // Normalize: add leading slash so patterns match both "e2e/foo" and "src/e2e/foo"
   const normalized = "/" + relPath;
   return (
     relPath.includes(".test.") ||
     relPath.includes(".spec.") ||
     relPath.endsWith("_test.go") ||
     relPath.endsWith("_test.py") ||
+    relPath.includes(".stories.") ||
+    // Test directories
     normalized.includes("/__tests__/") ||
     normalized.includes("/__mocks__/") ||
     normalized.includes("/test/") ||
@@ -67,11 +70,72 @@ export function isTestFile(relPath: string): boolean {
     normalized.includes("/e2e/") ||
     normalized.includes("/playwright/") ||
     normalized.includes("/fixtures/") ||
+    normalized.includes("/spec/") ||
+    // Non-production directories
     normalized.includes("/migrations/") ||
     normalized.includes("/migration/") ||
-    normalized.includes("/spec/") ||
-    relPath.includes(".stories.")
+    normalized.includes("/examples/") ||
+    normalized.includes("/example/") ||
+    normalized.includes("/demo/") ||
+    normalized.includes("/sample/") ||
+    normalized.includes("/samples/") ||
+    normalized.includes("/testutil/") ||
+    normalized.includes("/testing/") ||
+    normalized.includes("/test-integ/") ||
+    normalized.includes("/benchmark/") ||
+    // Go testing convention: files named testing.go (not _test.go)
+    relPath.endsWith("/testing.go")
   );
+}
+
+/**
+ * Check if a file appears to be server-side (Node.js/backend) vs browser/frontend.
+ * Server-side fetch calls are more dangerous (no browser timeout safety net).
+ */
+export function isServerSideFile(relPath: string): boolean {
+  const normalized = "/" + relPath;
+
+  // Definitely server-side
+  if (
+    normalized.includes("/server/") ||
+    normalized.includes("/api/") ||
+    normalized.includes("/backend/") ||
+    normalized.includes("/services/") ||
+    normalized.includes("/workers/") ||
+    normalized.includes("/cli/") ||
+    normalized.includes("/cmd/") ||
+    normalized.includes("/pkg/") ||
+    normalized.includes("/internal/") ||
+    normalized.includes("/agent/") ||
+    relPath.endsWith(".go") ||
+    relPath.endsWith(".py")
+  ) {
+    return true;
+  }
+
+  // Definitely client-side
+  if (
+    normalized.includes("/components/") ||
+    normalized.includes("/pages/") ||
+    normalized.includes("/app/") ||
+    normalized.includes("/views/") ||
+    normalized.includes("/composables/") ||
+    normalized.includes("/hooks/") ||
+    normalized.includes("/web/") ||
+    normalized.includes("/ui/") ||
+    normalized.includes("/frontend/") ||
+    normalized.includes("/public/") ||
+    normalized.includes("/docs/") ||
+    relPath.endsWith(".tsx") ||
+    relPath.endsWith(".jsx") ||
+    relPath.endsWith(".vue") ||
+    relPath.endsWith(".svelte")
+  ) {
+    return false;
+  }
+
+  // Default: assume server-side (safer to flag)
+  return true;
 }
 
 interface WalkOptions {
@@ -141,6 +205,7 @@ export function walkSourceFiles(rootDir: string, options?: WalkOptions): SourceF
           lines: content.split("\n"),
           ext,
           isTest: isTestFile(relPath),
+          isServerSide: isServerSideFile(relPath),
         });
       }
     }
