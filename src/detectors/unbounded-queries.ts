@@ -11,6 +11,8 @@ export function detectUnboundedQueries(files: SourceFile[]): DetectorResult {
   const findings: Finding[] = [];
 
   for (const file of files) {
+    if (file.isTest) continue;
+
     if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(file.ext)) {
       findings.push(...detectJsQueryIssues(file));
     } else if (file.ext === ".py") {
@@ -31,9 +33,6 @@ export function detectUnboundedQueries(files: SourceFile[]): DetectorResult {
 function detectJsQueryIssues(file: SourceFile): Finding[] {
   const findings: Finding[] = [];
   const { lines, relPath } = file;
-
-  // Skip test files
-  if (relPath.includes(".test.") || relPath.includes(".spec.") || relPath.includes("__tests__")) return findings;
 
   // Track if we're inside a loop
   let loopDepth = 0;
@@ -63,7 +62,7 @@ function detectJsQueryIssues(file: SourceFile): Finding[] {
       if (!hasPagination) {
         findings.push({
           detector: "unbounded-queries",
-          severity: "MEDIUM",
+          severity: "LOW",
           file: relPath,
           line: i + 1,
           message: "findMany() without take/skip — returns all rows, grows unbounded with data",

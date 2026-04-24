@@ -11,6 +11,8 @@ export function detectSilentErrors(files: SourceFile[]): DetectorResult {
   const findings: Finding[] = [];
 
   for (const file of files) {
+    if (file.isTest) continue;
+
     if (file.ext === ".py") {
       findings.push(...detectPythonSilentErrors(file));
     } else if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(file.ext)) {

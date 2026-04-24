@@ -45,6 +45,26 @@ export interface SourceFile {
   lines: string[];
   /** File extension (e.g. ".ts") */
   ext: string;
+  /** Whether this file is a test/spec/e2e file */
+  isTest: boolean;
+}
+
+/**
+ * Check if a file path indicates a test file.
+ */
+export function isTestFile(relPath: string): boolean {
+  return (
+    relPath.includes(".test.") ||
+    relPath.includes(".spec.") ||
+    relPath.includes("__tests__/") ||
+    relPath.includes("__mocks__/") ||
+    relPath.includes("/test/") ||
+    relPath.includes("/tests/") ||
+    relPath.includes("/e2e/") ||
+    relPath.includes("playwright/") ||
+    relPath.includes("/fixtures/") ||
+    relPath.includes(".stories.")
+  );
 }
 
 interface WalkOptions {
@@ -113,6 +133,7 @@ export function walkSourceFiles(rootDir: string, options?: WalkOptions): SourceF
           content,
           lines: content.split("\n"),
           ext,
+          isTest: isTestFile(relPath),
         });
       }
     }

@@ -11,6 +11,8 @@ export function detectRawErrors(files: SourceFile[]): DetectorResult {
   const findings: Finding[] = [];
 
   for (const file of files) {
+    if (file.isTest) continue;
+
     if ([".ts", ".tsx", ".js", ".jsx"].includes(file.ext)) {
       findings.push(...detectJsRawErrors(file));
     } else if (file.ext === ".py") {
@@ -31,9 +33,6 @@ export function detectRawErrors(files: SourceFile[]): DetectorResult {
 function detectJsRawErrors(file: SourceFile): Finding[] {
   const findings: Finding[] = [];
   const { lines, relPath } = file;
-
-  // Skip test files and non-UI files
-  if (relPath.includes(".test.") || relPath.includes(".spec.") || relPath.includes("__tests__")) return findings;
 
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();

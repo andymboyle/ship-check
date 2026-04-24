@@ -9,6 +9,8 @@ export function detectMissingTimeouts(files: SourceFile[]): DetectorResult {
   const findings: Finding[] = [];
 
   for (const file of files) {
+    if (file.isTest) continue;
+
     if (file.ext === ".py") {
       findings.push(...detectPythonTimeouts(file));
     } else if ([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(file.ext)) {
@@ -154,9 +156,6 @@ function detectJsTimeouts(file: SourceFile): Finding[] {
       const context = lines.slice(i, contextEnd).join(" ");
 
       if (p.timeoutIndicators.some((t) => context.includes(t))) continue;
-
-      // Skip test files
-      if (relPath.includes(".test.") || relPath.includes(".spec.") || relPath.includes("__tests__")) continue;
 
       findings.push({
         detector: "missing-timeouts",

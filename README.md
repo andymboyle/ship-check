@@ -133,30 +133,38 @@ ship-check walks your source tree once, reads every file into memory, then passe
 
 ## Does It Actually Work?
 
-I ran ship-check against a production monorepo (200K+ lines, 10 services, Python + TypeScript + Go):
+I ran ship-check against 8 popular open-source projects. **Every one had HIGH-severity findings.**
 
-```
-$ ship-check --severity=HIGH
+| Project | Stack | Files | HIGH | MEDIUM | LOW | Time |
+|---------|-------|-------|------|--------|-----|------|
+| [cal.com](https://github.com/calcom/cal.com) | TS/Next.js | 5,074 | 231 | 99 | 414 | 699ms |
+| [twenty](https://github.com/twentyhq/twenty) | TS/React | 16,665 | 105 | 155 | 1 | 2.1s |
+| [nocodb](https://github.com/nocodb/nocodb) | TS/Node | 1,844 | 192 | 226 | 0 | 479ms |
+| [documenso](https://github.com/documenso/documenso) | TS/Next.js | 1,825 | 50 | 27 | 103 | 321ms |
+| [hoppscotch](https://github.com/hoppscotch/hoppscotch) | TS/Vue | 1,183 | 46 | 24 | 85 | 256ms |
+| [medusa](https://github.com/medusajs/medusa) | TS/Node | 10,638 | 63 | 62 | 0 | 1.6s |
+| [immich](https://github.com/immich-app/immich) | TS/Svelte | 999 | 15 | 25 | 0 | 220ms |
+| [maybe](https://github.com/maybe-finance/maybe) | TS/Next.js | 844 | 5 | 0 | 0 | 85ms |
 
-silent-errors — 57 HIGH
-missing-timeouts — 126 HIGH
-unbounded-queries — 110 HIGH
-raw-errors — 43 HIGH
+Test files are automatically excluded—these are all production code findings.
 
-Summary
-3406 files scanned in 817ms
-336 findings
-```
+### What the detectors found
 
-Real fixes that came from these detectors (when they were LLM-driven audit prompts):
+**cal.com**—193 `fetch()` calls with no timeout across API integrations (Vercel, app stores, OAuth). 15 empty catch blocks in critical paths.
+
+**nocodb**—134 empty catch blocks in the Vue frontend (`catch (e) {}`), silently swallowing errors in clipboard, attachment, and table operations. 45 HTTP clients with no timeout.
+
+**twenty**—95 missing timeouts across their CRM service calls. 10 HIGH silent-error blocks including broad `except Exception` handlers.
+
+### Real fixes from a production monorepo
+
+These detectors started as LLM-driven audit prompts. Here's what they found and what was fixed:
 
 | What was found | What was fixed |
 |---------------|---------------|
-| 88 `fetch()` calls with no timeout | Added `AbortSignal.timeout(30_000)` to all Fido service calls |
+| 88 `fetch()` calls with no timeout | Added `AbortSignal.timeout(30_000)` to all service calls |
 | 29 HIGH silent error-swallowing blocks | Added `logger.exception()`, narrowed exception types |
 | 6 Prisma queries loading 30+ columns | Added `select` to fetch only needed fields |
-| 3 service port fallbacks pointing to wrong ports | Corrected port numbers |
-| 5 sequential layout queries per page load | Parallelized with `Promise.all()` |
 | 67 components showing raw `error.message` | Created `getUserFriendlyErrorMessage()` utility |
 
 ---
