@@ -138,7 +138,9 @@ function detectSecretPatterns(file: SourceFile): Finding[] {
     relPath.includes("tsconfig") ||
     relPath.endsWith(".d.ts") ||
     relPath.includes("migration") ||
-    relPath.includes("seed")
+    relPath.includes("seed") ||
+    relPath.includes("/docs/") ||
+    relPath.includes("docusaurus")
   ) {
     return findings;
   }

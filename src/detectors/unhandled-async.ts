@@ -36,9 +36,8 @@ function detectJsUnhandledAsync(file: SourceFile): Finding[] {
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
 
-    // Fire-and-forget: calling an async function without await, .then, or .catch
-    // Pattern: someAsyncFunction(); (no await, no .then, no .catch on the line or next)
-    // This is hard to detect reliably, so focus on the clearest patterns:
+    // Skip comment lines and JSDoc
+    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) continue;
 
     // 1. Promise.all/race without error handling — only flag true fire-and-forget
     // Skip Promise.allSettled — it never rejects, so fire-and-forget is safe

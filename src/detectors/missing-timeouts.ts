@@ -163,10 +163,13 @@ function detectJsTimeouts(file: SourceFile): Finding[] {
     const line = lines[i];
     const trimmed = line.trim();
 
-    // Skip comment lines, imports, type definitions, and string mentions
-    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("import ")) continue;
-    if (trimmed.startsWith("declare ") || trimmed.startsWith("function ") && relPath.endsWith(".d.ts")) continue;
+    // Skip comment lines, imports, type definitions, string mentions, and JSDoc
+    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) continue;
+    if (trimmed.startsWith("import ") || trimmed.startsWith("export type") || trimmed.startsWith("export interface")) continue;
+    if (trimmed.startsWith("declare ")) continue;
     if (trimmed.startsWith("return \"") || trimmed.startsWith("return '") || trimmed.startsWith("return `")) continue;
+    // Type annotations: fetch(input: string, ...): Promise<...>
+    if (/^\w+\s*\(.*\)\s*:\s*(Promise|void|boolean|string|number)/.test(trimmed) && !/await|=/.test(trimmed)) continue;
 
     for (const p of JS_PATTERNS) {
       if (!p.pattern.test(line)) continue;
@@ -196,6 +199,8 @@ function detectJsTimeouts(file: SourceFile): Finding[] {
 
         // Font/image/asset loading
         if (/\.(ttf|woff|woff2|otf|png|jpg|svg|css)\b/.test(trimmed)) continue;
+        // Localhost/loopback calls (local services, dev tools)
+        if (/localhost|127\.0\.0\.1|0\.0\.0\.0/.test(trimmed)) continue;
 
         // Only flag as HIGH if URL is explicitly external (https://...)
         // or if we're in server-side code (no browser safety net)
@@ -209,10 +214,10 @@ function detectJsTimeouts(file: SourceFile): Finding[] {
         }
       }
 
-      // For axios: same-origin patterns
-      if (p.service === "axios" || p.service === "axios.create") {
-        // Skip if no external URL visible (axios to own backend is low risk in browser)
+      // For axios: skip browser-side, localhost, and same-origin patterns
+      if (p.service.startsWith("axios")) {
         if (!file.isServerSide && !/https?:\/\//.test(context)) continue;
+        if (/localhost|127\.0\.0\.1/.test(context)) continue;
       }
 
       // For Redis createClient: require redis import context (not trpc/graphql createClient)
