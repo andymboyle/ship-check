@@ -52,18 +52,34 @@ So I automated the detection. Every detector has been validated against 8 open-s
 
 ## Does It Actually Work?
 
-### Tested against 8 open-source projects
+### Tested against 20 open-source projects
 
-| Project | Stack | Files | HIGH | MEDIUM | LOW | Time |
-|---------|-------|-------|------|--------|-----|------|
-| [cal.com](https://github.com/calcom/cal.com) | TS/Next.js | 5,074 | 155 | 830 | 715 | 1.1s |
-| [twenty](https://github.com/twentyhq/twenty) | TS/React | 16,665 | 95 | 840 | 493 | 3.3s |
-| [nocodb](https://github.com/nocodb/nocodb) | TS/Node | 1,844 | 47 | 1,168 | 485 | 869ms |
-| [medusa](https://github.com/medusajs/medusa) | TS/Node | 10,638 | 39 | 1,294 | 592 | 2.2s |
-| [hoppscotch](https://github.com/hoppscotch/hoppscotch) | TS/Vue | 1,183 | 31 | 200 | 272 | 359ms |
-| [documenso](https://github.com/documenso/documenso) | TS/Next.js | 1,825 | 32 | 117 | 164 | 486ms |
-| [immich](https://github.com/immich-app/immich) | TS/Svelte | 999 | 12 | 91 | 85 | 316ms |
-| [maybe](https://github.com/maybe-finance/maybe) | TS/Next.js | 844 | 5 | 2 | 0 | 109ms |
+Every project had HIGH-severity findings. 102,000+ files scanned.
+
+| Project | Files | HIGH | MEDIUM | LOW | Time |
+|---------|-------|------|--------|-----|------|
+| [saleor](https://github.com/saleor/saleor) | 4,237 | 349 | 484 | 0 | 663ms |
+| [chatwoot](https://github.com/chatwoot/chatwoot) | 2,994 | 244 | 83 | 6 | 385ms |
+| [lobe-chat](https://github.com/lobehub/lobe-chat) | 7,747 | 211 | 930 | 987 | 1.7s |
+| [cal.com](https://github.com/calcom/cal.com) | 5,074 | 155 | 830 | 715 | 1.1s |
+| [supabase](https://github.com/supabase/supabase) | 6,550 | 148 | 1,028 | 496 | 1.6s |
+| [n8n](https://github.com/n8n-io/n8n) | 12,122 | 137 | 1,597 | 549 | 3.0s |
+| [paperless-ngx](https://github.com/paperless-ngx/paperless-ngx) | 708 | 123 | 160 | 1 | 197ms |
+| [refine](https://github.com/refinedev/refine) | 6,766 | 123 | 649 | 212 | 1.3s |
+| [twenty](https://github.com/twentyhq/twenty) | 16,665 | 95 | 838 | 488 | 3.3s |
+| [outline](https://github.com/outline/outline) | 2,196 | 65 | 224 | 67 | 480ms |
+| [nocodb](https://github.com/nocodb/nocodb) | 1,844 | 47 | 1,155 | 413 | 837ms |
+| [strapi](https://github.com/strapi/strapi) | 4,341 | 45 | 320 | 386 | 796ms |
+| [medusa](https://github.com/medusajs/medusa) | 10,638 | 39 | 1,002 | 590 | 2.2s |
+| [documenso](https://github.com/documenso/documenso) | 1,825 | 32 | 117 | 164 | 463ms |
+| [hoppscotch](https://github.com/hoppscotch/hoppscotch) | 1,183 | 31 | 200 | 272 | 339ms |
+| [loki](https://github.com/grafana/loki) | 2,531 | 20 | 41 | 7 | 553ms |
+| [trpc](https://github.com/trpc/trpc) | 902 | 18 | 63 | 128 | 175ms |
+| [immich](https://github.com/immich-app/immich) | 999 | 12 | 90 | 85 | 288ms |
+| [appwrite](https://github.com/appwrite/appwrite) | 1,476 | 11 | 9 | 12 | 274ms |
+| [maybe](https://github.com/maybe-finance/maybe) | 844 | 5 | 2 | 0 | 90ms |
+
+Test files, migration files, and spec directories are automatically excluded.
 
 ### Precision-validated
 
