@@ -68,6 +68,7 @@ export function isTestFile(relPath: string): boolean {
     normalized.includes("/test/") ||
     normalized.includes("/tests/") ||
     normalized.includes("/e2e/") ||
+    normalized.includes("/e2e-") ||
     normalized.includes("/playwright/") ||
     normalized.includes("/fixtures/") ||
     normalized.includes("/spec/") ||
@@ -95,6 +96,27 @@ export function isTestFile(relPath: string): boolean {
 export function isServerSideFile(relPath: string): boolean {
   const normalized = "/" + relPath;
 
+  // Check client-side FIRST — these take priority over ambiguous paths like /services/
+  if (
+    normalized.includes("/components/") ||
+    normalized.includes("/pages/") ||
+    normalized.includes("/views/") ||
+    normalized.includes("/composables/") ||
+    normalized.includes("/hooks/") ||
+    normalized.includes("/web/") ||
+    normalized.includes("/ui/") ||
+    normalized.includes("/frontend/") ||
+    normalized.includes("/public/") ||
+    normalized.includes("/docs/") ||
+    normalized.includes("/webui/") ||
+    relPath.endsWith(".tsx") ||
+    relPath.endsWith(".jsx") ||
+    relPath.endsWith(".vue") ||
+    relPath.endsWith(".svelte")
+  ) {
+    return false;
+  }
+
   // Definitely server-side
   if (
     normalized.includes("/server/") ||
@@ -111,27 +133,6 @@ export function isServerSideFile(relPath: string): boolean {
     relPath.endsWith(".py")
   ) {
     return true;
-  }
-
-  // Definitely client-side
-  if (
-    normalized.includes("/components/") ||
-    normalized.includes("/pages/") ||
-    normalized.includes("/app/") ||
-    normalized.includes("/views/") ||
-    normalized.includes("/composables/") ||
-    normalized.includes("/hooks/") ||
-    normalized.includes("/web/") ||
-    normalized.includes("/ui/") ||
-    normalized.includes("/frontend/") ||
-    normalized.includes("/public/") ||
-    normalized.includes("/docs/") ||
-    relPath.endsWith(".tsx") ||
-    relPath.endsWith(".jsx") ||
-    relPath.endsWith(".vue") ||
-    relPath.endsWith(".svelte")
-  ) {
-    return false;
   }
 
   // Default: assume server-side (safer to flag)

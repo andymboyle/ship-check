@@ -107,7 +107,7 @@ const IGNORE_CONTEXTS = [
   /\$_ENV/,                   // PHP env var
   /getenv\(/,                 // PHP env var
   /config\.\w+/,              // Config object access
-  /placeholder|example|dummy|fake|test|sample|mock|changeme|your[_-]/i,
+  /placeholder|example|dummy|fake|test|sample|mock|changeme|your[_-]|thisIs/i,
   /TODO|FIXME|REPLACE/i,
   /password[_-]?(min|max|length|policy|regex|pattern|hash|salt|format|strength|rule|require)/i,
   /\btype\s*[:=]/,             // Type annotations/definitions, not values
