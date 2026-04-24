@@ -50,7 +50,7 @@ export interface SourceFile {
 }
 
 /**
- * Check if a file path indicates a test file.
+ * Check if a file path indicates a test file or non-production code.
  */
 export function isTestFile(relPath: string): boolean {
   // Normalize: add leading slash so patterns match both "e2e/foo" and "src/e2e/foo"
@@ -65,6 +65,9 @@ export function isTestFile(relPath: string): boolean {
     normalized.includes("/e2e/") ||
     normalized.includes("/playwright/") ||
     normalized.includes("/fixtures/") ||
+    normalized.includes("/migrations/") ||
+    normalized.includes("/migration/") ||
+    normalized.includes("/spec/") ||
     relPath.includes(".stories.")
   );
 }

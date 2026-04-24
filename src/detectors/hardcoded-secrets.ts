@@ -116,6 +116,8 @@ const IGNORE_CONTEXTS = [
   /\binvalid[_-]/i,            // "invalid_token", "invalid_access_token" — test values
   /\b(Incorrect|Missing|Wrong|Bad|Invalid)\w*\s*=/i,  // Error constant names
   /\$\{/,                      // Template variable references: "${VAR}"
+  /\#\{/,                      // Ruby string interpolation: "#{SecureRandom.hex}"
+  /SecureRandom|crypto\.random|uuid/i, // Dynamically generated values
 ];
 
 function detectSecretPatterns(file: SourceFile): Finding[] {
