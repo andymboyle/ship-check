@@ -1,0 +1,53 @@
+{
+  "name": "audit-kit",
+  "version": "0.1.0",
+  "description": "Find silent errors, missing timeouts, unbounded queries, and raw error leaks in your codebase. Zero dependencies.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "audit-kit": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "audit",
+    "linter",
+    "static-analysis",
+    "error-handling",
+    "timeouts",
+    "reliability",
+    "developer-experience",
+    "devops"
+  ],
+  "author": "Andy Boyle",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andymboyle/audit-kit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  }
+}
