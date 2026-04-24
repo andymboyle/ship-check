@@ -58,6 +58,8 @@ export function isTestFile(relPath: string): boolean {
   return (
     relPath.includes(".test.") ||
     relPath.includes(".spec.") ||
+    relPath.endsWith("_test.go") ||
+    relPath.endsWith("_test.py") ||
     normalized.includes("/__tests__/") ||
     normalized.includes("/__mocks__/") ||
     normalized.includes("/test/") ||

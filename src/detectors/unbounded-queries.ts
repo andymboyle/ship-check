@@ -155,16 +155,9 @@ function detectPythonQueryIssues(file: SourceFile): Finding[] {
   const findings: Finding[] = [];
   const { lines, relPath } = file;
 
-  let loopDepth = 0;
-
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
     const indent = lines[i].length - lines[i].trimStart().length;
-
-    // Track loop context (Python uses indentation)
-    if (/^(for|while)\s+/.test(trimmed) && trimmed.endsWith(":")) {
-      loopDepth++;
-    }
 
     // .all() without limit (Django/SQLAlchemy)
     if (/\.all\(\)/.test(trimmed) && !/\.limit\(|\.first\(|\[:/.test(trimmed)) {
@@ -183,27 +176,38 @@ function detectPythonQueryIssues(file: SourceFile): Finding[] {
       }
     }
 
-    // Query inside a loop
-    if (loopDepth > 0 && /\.(filter|get|first|all|execute)\s*\(/.test(trimmed)) {
-      // Check it's a query method, not just any .get()
-      const context = lines.slice(Math.max(0, i - 3), i + 1).join(" ");
-      if (/\b(session|query|objects|Model|cursor|db)\b/.test(context)) {
+    // Query inside a loop — only flag if we can verify a for/while loop above
+    // The Python indent-based loop tracking is unreliable, so double-check
+    // by scanning the previous 15 lines for an actual loop statement at lower indent
+    if (/\.objects\.(filter|get|first|all|create|update|exclude)\s*\(/.test(trimmed)) {
+      const queryIndent = indent;
+      let foundLoop = false;
+      for (let j = i - 1; j >= Math.max(0, i - 15); j--) {
+        const prevLine = lines[j].trim();
+        const prevIndent = lines[j].length - lines[j].trimStart().length;
+        // A for/while at lower indent than the query means the query is inside the loop
+        if (/^(for|while)\s+/.test(prevLine) && prevLine.endsWith(":") && prevIndent < queryIndent) {
+          foundLoop = true;
+          break;
+        }
+        // Hit a function/class def — stop looking
+        if (/^(def|class|async\s+def)\s+/.test(prevLine) && prevIndent < queryIndent) {
+          break;
+        }
+      }
+      if (foundLoop) {
         findings.push({
           detector: "unbounded-queries",
           severity: "HIGH",
           file: relPath,
           line: i + 1,
-          message: "Database query inside a loop (N+1) — fires a separate query per iteration",
+          message: "Django ORM query inside a loop (N+1) — fires a separate query per iteration",
           fix: "Batch the query outside the loop using an IN clause or prefetch_related/selectinload",
           source: trimmed,
         });
       }
     }
 
-    // Rough dedent detection for loop exit
-    if (loopDepth > 0 && trimmed !== "" && indent === 0) {
-      loopDepth = 0;
-    }
   }
 
   return findings;

@@ -99,7 +99,7 @@ function detectPythonSilentErrors(file: SourceFile): Finding[] {
     );
 
     const hasReturn = bodyLines.some((l) =>
-      /^return\s+(None|False|\[\]|\{\}|""|\b0\b)/.test(l.text) || l.text === "return" || l.text === "continue",
+      /^return\s+(None|False|\[\]|\{\})\s*$/.test(l.text) || l.text === "return" || l.text === "continue",
     );
 
     if (hasReturn && !hasLogging) {
