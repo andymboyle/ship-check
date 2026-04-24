@@ -1,7 +1,9 @@
 # ship-check
 
+<!-- [![npm](https://img.shields.io/npm/v/ship-check)](https://www.npmjs.com/package/ship-check) -->
 [![license](https://img.shields.io/github/license/andymboyle/ship-check)](LICENSE)
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
+<!-- [![downloads](https://img.shields.io/npm/dm/ship-check)](https://www.npmjs.com/package/ship-check) -->
 
 ```
      _     _                  _               _    
@@ -12,9 +14,9 @@
              |_|                                    
 ```
 
-Find the reliability problems your linter doesn't catch. Silent error swallowing, missing timeouts, N+1 queries, raw error leaks—the stuff that causes production incidents, not syntax warnings.
+Find the reliability problems your linter doesn't catch. Missing timeouts, silent error swallowing, N+1 queries, raw error leaks, hardcoded secrets—the stuff that causes production incidents, not syntax warnings.
 
-Zero dependencies. Scans 3,000+ files in under a second.
+Zero dependencies. 9 detectors. 3 languages. Scans 16,000 files in under 3 seconds.
 
 ```bash
 npx ship-check
@@ -24,33 +26,69 @@ npx ship-check
 
 ## Why This Exists
 
-Linters check syntax and style. They don't check:
+Linters check syntax and style. They don't check whether your `fetch()` call will hang forever when a downstream service goes down, whether your `catch {}` block is hiding a production outage, or whether you're showing raw Python tracebacks to users.
 
-- Is this catch block actually doing anything, or is it hiding failures?
-- Does this HTTP call have a timeout, or will it hang forever when a downstream service goes down?
-- Is this database query inside a loop, firing 50 separate queries when it could be one?
-- Are we showing raw Python tracebacks to users in the UI?
+I ran structured audits against our production monorepo and found 88 HTTP calls with no timeout, 128 silent error-swallowing catch blocks, 6 queries loading 30+ columns when only 1-2 were needed, and 67 components showing raw error messages to users. Each finding led to a real fix.
 
-These are the bugs that cause production incidents—not syntax errors, but *operational* problems. They're invisible until something goes wrong.
-
-I ran structured audits against our production monorepo and found 128 silent error-swallowing catch blocks, 88 HTTP calls with no timeout, 6 queries loading 30+ columns when only 1-2 were needed, and 67 components showing raw tracebacks to users. Each finding led to a real fix. Some were one-line changes. Some were "how did we ship this."
-
-So I automated the detection.
+So I automated the detection. Every detector has been validated against 8 open-source projects and precision-tested against manually classified fixtures.
 
 ---
 
 ## What It Finds
 
-| Detector | What It Catches | Languages |
-|----------|----------------|-----------|
-| **silent-errors** | Empty catch/except blocks, `pass`, returns without logging, overly broad exception types | Python, JS/TS, Go |
-| **missing-timeouts** | `fetch()`, `httpx`, `requests`, `axios`, Redis, SQLAlchemy without timeout config | Python, JS/TS, Go |
-| **unbounded-queries** | `findMany()` without pagination, N+1 queries in loops, SELECT * over-fetching | JS/TS, Python |
-| **raw-errors** | `{error.message}` in JSX, `traceback.format_exc()` in responses, stack traces in UI | JS/TS, Python |
-| **hardcoded-secrets** | AWS keys, Slack/GitHub/Stripe tokens, passwords in connection strings, JWT tokens | All |
-| **unhandled-async** | `Promise.all` without await/catch, async event handlers without try/catch, fire-and-forget `create_task()` | JS/TS, Python |
+| Detector | What It Catches | Severity | Languages |
+|----------|----------------|----------|-----------|
+| **missing-timeouts** | `fetch()`, `httpx`, `requests`, `axios`, Redis without timeout | HIGH | Python, JS/TS, Go |
+| **silent-errors** | Empty catch/except blocks, `pass`, returns without logging | HIGH/MEDIUM | Python, JS/TS, Go |
+| **unbounded-queries** | N+1 queries in loops, `findMany()` without pagination | HIGH/LOW | JS/TS, Python |
+| **raw-errors** | `{error.message}` in JSX, tracebacks in API responses | HIGH | JS/TS, Python |
+| **hardcoded-secrets** | AWS keys, Slack/GitHub/Stripe tokens, passwords, JWTs | HIGH | All |
+| **unhandled-async** | Fire-and-forget `Promise.all`, async handlers without try/catch | HIGH | JS/TS, Python |
+| **console-log** | `console.log` left in production code | LOW | JS/TS |
+| **async-without-await** | `async` functions that never use `await` | MEDIUM | JS/TS |
+| **deprecated-apis** | `substr()`, `componentWillMount`, `typing.Optional`, `utcnow()` | LOW | JS/TS, Python |
 
-Each finding includes severity (HIGH/MEDIUM/LOW), exact file:line, a description of the problem, and a concrete fix.
+---
+
+## Does It Actually Work?
+
+### Tested against 8 open-source projects
+
+| Project | Stack | Files | HIGH | MEDIUM | LOW | Time |
+|---------|-------|-------|------|--------|-----|------|
+| [cal.com](https://github.com/calcom/cal.com) | TS/Next.js | 5,074 | 155 | 830 | 715 | 1.1s |
+| [twenty](https://github.com/twentyhq/twenty) | TS/React | 16,665 | 95 | 840 | 493 | 3.3s |
+| [nocodb](https://github.com/nocodb/nocodb) | TS/Node | 1,844 | 47 | 1,168 | 485 | 869ms |
+| [medusa](https://github.com/medusajs/medusa) | TS/Node | 10,638 | 39 | 1,294 | 592 | 2.2s |
+| [hoppscotch](https://github.com/hoppscotch/hoppscotch) | TS/Vue | 1,183 | 31 | 200 | 272 | 359ms |
+| [documenso](https://github.com/documenso/documenso) | TS/Next.js | 1,825 | 32 | 117 | 164 | 486ms |
+| [immich](https://github.com/immich-app/immich) | TS/Svelte | 999 | 12 | 91 | 85 | 316ms |
+| [maybe](https://github.com/maybe-finance/maybe) | TS/Next.js | 844 | 5 | 2 | 0 | 109ms |
+
+### Precision-validated
+
+We manually classified 44 HIGH findings from cal.com by reading the actual source code. Each was marked true-positive (real problem), false-positive (intentional/safe), or debatable.
+
+The missing-timeouts detector—which produces the most findings—has **90% precision**: 9 out of 10 sampled findings were real `fetch()` calls to external APIs with no timeout.
+
+A precision test suite with curated true-positive and false-positive fixtures runs on every change. Current score: **100%** on fixtures (12 true positives detected, 0 false positives flagged).
+
+### What it found in the wild
+
+**cal.com**—148 `fetch()` calls with no timeout across OAuth token exchanges (Microsoft, Feishu, Zoom), app store integrations, and webhook handlers. Two fire-and-forget `Promise.all()` calls that silently lose notification emails.
+
+**hoppscotch**—A hardcoded PostHog API key in production source code. 31 missing timeouts across agent communication and auth services.
+
+**twenty**—90 missing timeouts. A raw `error.message` rendered directly in a component renderer UI.
+
+### Real fixes from a production monorepo
+
+| What was found | What was fixed |
+|---------------|---------------|
+| 88 `fetch()` calls with no timeout | Added `AbortSignal.timeout(30_000)` to all service calls |
+| 29 HIGH silent error-swallowing blocks | Added `logger.exception()`, narrowed exception types |
+| 6 Prisma queries loading 30+ columns | Added `select` to fetch only needed fields |
+| 67 components showing raw `error.message` | Created `getUserFriendlyErrorMessage()` utility |
 
 ---
 
@@ -113,28 +151,10 @@ $ ship-check missing-timeouts --fix
      - client = httpx.AsyncClient()
      + client = httpx.AsyncClient(timeout=30.0)
 
-  ✅ src/client.py:5
-     - response = requests.get("https://api.example.com/data")
-     + response = requests.get("https://api.example.com/data", timeout=30)
-
 4 file(s) fixed.
 ```
 
-Currently auto-fixable:
-
-| Pattern | Fix applied |
-|---------|-----------|
-| `fetch(url)` | Adds `{ signal: AbortSignal.timeout(30_000) }` |
-| `fetch(url, { opts })` | Adds `signal: AbortSignal.timeout(30_000)` to opts |
-| `httpx.AsyncClient()` | Adds `timeout=30.0` |
-| `httpx.Client()` | Adds `timeout=30.0` |
-| `requests.get/post(url)` | Adds `timeout=30` |
-| `aiohttp.ClientSession()` | Adds `timeout=aiohttp.ClientTimeout(total=30)` |
-| `redis.Redis()` | Adds `socket_timeout=5, socket_connect_timeout=5` |
-| `axios.create({})` | Adds `timeout: 30_000` |
-| `new Redis()` | Adds `{ connectTimeout: 5000 }` |
-
-Multi-line calls and complex argument patterns are skipped (reported but not auto-fixed).
+Currently auto-fixable: `fetch()`, `httpx`, `requests`, `aiohttp`, `redis.Redis`, `axios.create`, `new Redis`. Multi-line calls are skipped safely.
 
 ### CI / GitHub Action
 
@@ -154,10 +174,6 @@ const result = scan({
   exclude: ['generated/'],
 });
 
-// result.results     — array of DetectorResult (one per detector)
-// result.filesScanned — number of files scanned
-// result.duration     — scan time in ms
-
 console.log(formatJSON(result));
 ```
 
@@ -165,99 +181,25 @@ console.log(formatJSON(result));
 
 ## How It Works
 
-ship-check walks your source tree once, reads every file into memory, then passes the file list to each detector. Each detector scans for patterns using regex + structural context—not just "does this line contain X" but "is this database call inside a loop?" and "is this error.message inside JSX or a logger?"
+ship-check walks your source tree once, reads every file into memory, then passes the file list to each detector. Each detector uses regex + structural context—not just "does this line match" but "is this query inside a loop?" and "is this error.message inside JSX or a logger?"
 
 **What makes this different from a linter:**
 
-- **Structural context**: Tracks loop depth to find N+1 queries (query inside a `.map()` or `for` loop)
-- **Call-site context**: Checks if a timeout param exists within the multi-line function call, not just anywhere nearby
-- **Semantic context**: Distinguishes `{error.message}` in JSX (user-facing) from `console.error(error.message)` (fine)
+- **Structural context**: Tracks loop depth to find N+1 queries (real `for`/`forEach` loops, not `.map()` which runs in parallel)
+- **Call-site context**: Checks if a timeout param exists within the function call, not just anywhere nearby
+- **Semantic context**: Skips `console.error(error.message)` (fine) but flags `{error.message}` in JSX (user-facing)
 - **Absence detection**: Finds what's *missing*—no timeout, no logging, no pagination—not just what's wrong
+- **Safe patterns**: Recognizes localStorage try/catch, JSON.parse fallbacks, cleanup code, i18n-wrapped errors
 
----
-
-## Does It Actually Work?
-
-I ran ship-check against 8 popular open-source projects. **Every one had HIGH-severity findings.**
-
-| Project | Stack | Files | HIGH | MEDIUM | LOW | Time |
-|---------|-------|-------|------|--------|-----|------|
-| [cal.com](https://github.com/calcom/cal.com) | TS/Next.js | 5,074 | 247 | 103 | 414 | 871ms |
-| [twenty](https://github.com/twentyhq/twenty) | TS/React | 16,665 | 124 | 227 | 1 | 2.5s |
-| [nocodb](https://github.com/nocodb/nocodb) | TS/Node | 1,844 | 221 | 229 | 0 | 617ms |
-| [documenso](https://github.com/documenso/documenso) | TS/Next.js | 1,825 | 53 | 27 | 103 | 343ms |
-| [hoppscotch](https://github.com/hoppscotch/hoppscotch) | TS/Vue | 1,183 | 50 | 32 | 85 | 259ms |
-| [medusa](https://github.com/medusajs/medusa) | TS/Node | 10,638 | 80 | 121 | 0 | 1.7s |
-| [immich](https://github.com/immich-app/immich) | TS/Svelte | 999 | 48 | 55 | 0 | 243ms |
-| [maybe](https://github.com/maybe-finance/maybe) | TS/Next.js | 844 | 9 | 1 | 0 | 82ms |
-
-Test files are automatically excluded—these are all production code findings.
-
-### What the detectors found
-
-**cal.com**—193 `fetch()` calls with no timeout across API integrations (Vercel, app stores, OAuth). 15 empty catch blocks in critical paths.
-
-**nocodb**—134 empty catch blocks in the Vue frontend (`catch (e) {}`), silently swallowing errors in clipboard, attachment, and table operations. 45 HTTP clients with no timeout.
-
-**twenty**—95 missing timeouts across their CRM service calls. 10 HIGH silent-error blocks including broad `except Exception` handlers.
-
-### Real fixes from a production monorepo
-
-These detectors started as LLM-driven audit prompts. Here's what they found and what was fixed:
-
-| What was found | What was fixed |
-|---------------|---------------|
-| 88 `fetch()` calls with no timeout | Added `AbortSignal.timeout(30_000)` to all service calls |
-| 29 HIGH silent error-swallowing blocks | Added `logger.exception()`, narrowed exception types |
-| 6 Prisma queries loading 30+ columns | Added `select` to fetch only needed fields |
-| 67 components showing raw `error.message` | Created `getUserFriendlyErrorMessage()` utility |
-
----
-
-## Adding Detectors
-
-Each detector is a function that receives files and returns findings:
-
-```typescript
-import type { DetectorResult, Finding } from "../types";
-import type { SourceFile } from "../walker";
-
-export function detectMyPattern(files: SourceFile[]): DetectorResult {
-  const findings: Finding[] = [];
-
-  for (const file of files) {
-    for (let i = 0; i < file.lines.length; i++) {
-      // Check for your pattern
-      if (/* matches */) {
-        findings.push({
-          detector: "my-pattern",
-          severity: "HIGH",
-          file: file.relPath,
-          line: i + 1,
-          message: "Description of the problem",
-          fix: "How to fix it",
-          source: file.lines[i].trim(),
-        });
-      }
-    }
-  }
-
-  return {
-    detector: "my-pattern",
-    name: "My Pattern",
-    description: "What this detector finds",
-    findings,
-  };
-}
-```
-
-Register it in `scanner.ts` and it works with all CLI flags, output formats, and filtering automatically.
+Test files, type definitions (.d.ts), string literals mentioning function names, and template variable references are automatically excluded.
 
 ---
 
 ## Contributing
 
 Found a false positive? A pattern ship-check should detect? [Open an issue](https://github.com/andymboyle/ship-check/issues).
+
+Want to add a detector? Each one is a single function. See `src/detectors/` for examples, then register it in `scanner.ts`.
 
 ---
 
