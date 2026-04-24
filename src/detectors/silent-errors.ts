@@ -264,6 +264,9 @@ function detectJsSilentErrors(file: SourceFile): Finding[] {
 // --- Go ---
 
 function detectGoSilentErrors(file: SourceFile): Finding[] {
+  // Skip doc.go files — they contain example code in comments, not real logic
+  if (file.relPath.endsWith("doc.go")) return [];
+
   const findings: Finding[] = [];
   const { lines, relPath } = file;
 

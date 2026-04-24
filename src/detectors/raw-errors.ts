@@ -52,12 +52,19 @@ function detectJsRawErrors(file: SourceFile): Finding[] {
       const isJsx = /<\w/.test(context) && (/className/.test(context) || /<\//.test(context));
 
       if (isJsx) {
+        // Downgrade error boundaries/fallback components — these are developer-facing
+        const isErrorBoundary = /ErrorBoundary|ErrorFallback|error[_-]?fallback|error[_-]?boundary/i.test(
+          lines.slice(Math.max(0, i - 15), i).join("\n"),
+        );
+
         findings.push({
           detector: "raw-errors",
-          severity: "HIGH",
+          severity: isErrorBoundary ? "MEDIUM" : "HIGH",
           file: relPath,
           line: i + 1,
-          message: "Raw error.message rendered in UI — users see technical error strings",
+          message: isErrorBoundary
+            ? "error.message in error boundary — consider a user-friendly fallback"
+            : "Raw error.message rendered in UI — users see technical error strings",
           fix: "Use a user-friendly message: \"Something went wrong. Please try again.\" Log the real error separately.",
           source: trimmed,
         });

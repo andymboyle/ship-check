@@ -58,7 +58,7 @@ const SECRET_PATTERNS: {
   {
     pattern: /(?:^|[\s,{(])(?:password|passwd|pwd)\s*[:=]\s*['"`]([^'"`\s]*[0-9!@#$%^&*][^'"`\s]*)['"`]/i,
     label: "Hardcoded password",
-    severity: "HIGH",
+    severity: "MEDIUM",
   },
   // Slack tokens (xoxb-, xoxp-, xoxs-)
   {

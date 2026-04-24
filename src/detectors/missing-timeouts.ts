@@ -89,12 +89,16 @@ function detectPythonTimeouts(file: SourceFile): Finding[] {
       const context = lines.slice(i, Math.min(i + 6, lines.length)).join(" ");
       if (context.includes(p.timeoutParam)) continue;
 
+      // HIGH only for calls with explicit external URLs
+      const isExternal = /https?:\/\//.test(line);
+      const severity = isExternal ? "HIGH" as const : "MEDIUM" as const;
+
       findings.push({
         detector: "missing-timeouts",
-        severity: "HIGH",
+        severity,
         file: relPath,
         line: i + 1,
-        message: `${p.service} call without timeout — will hang indefinitely on downstream outage`,
+        message: `${p.service} call without timeout — ${severity === "HIGH" ? "external service call could hang indefinitely" : "consider adding a timeout"}`,
         fix: p.fix,
         source: line.trim(),
         fixable: !!p.fixId,
@@ -226,12 +230,17 @@ function detectJsTimeouts(file: SourceFile): Finding[] {
         if (!/\bredis\b/i.test(fileContext)) continue;
       }
 
+      // Severity: HIGH only for external URLs in server-side code
+      // MEDIUM for everything else (variable URLs, browser-side, internal APIs)
+      const isExternalUrl = /https?:\/\//.test(trimmed);
+      const severity = (file.isServerSide && isExternalUrl) ? "HIGH" as const : "MEDIUM" as const;
+
       findings.push({
         detector: "missing-timeouts",
-        severity: "HIGH",
+        severity,
         file: relPath,
         line: i + 1,
-        message: `${p.service} call without timeout — will hang indefinitely on downstream outage`,
+        message: `${p.service} call without timeout — ${severity === "HIGH" ? "external service call could hang indefinitely" : "consider adding a timeout"}`,
         fix: p.fix,
         source: trimmed,
         fixable: !!p.fixId,
@@ -256,18 +265,26 @@ function detectGoTimeouts(file: SourceFile): Finding[] {
     if (/&?http\.Client\s*\{/.test(line)) {
       const context = lines.slice(i, Math.min(i + 5, lines.length)).join(" ");
       if (!context.includes("Timeout")) {
-        // Check if context-based timeout is used nearby (Go pattern: context.WithTimeout)
-        const surroundingContext = lines.slice(Math.max(0, i - 10), Math.min(i + 15, lines.length)).join(" ");
+        // Check if context-based timeout is used in this function (Go pattern: context.WithTimeout)
+        // Go code often creates the client in one place and uses context per-request,
+        // so we scan the whole function (up to 50 lines around the constructor)
+        const surroundingContext = lines.slice(Math.max(0, i - 25), Math.min(i + 30, lines.length)).join(" ");
         if (/context\.With(Timeout|Deadline)/.test(surroundingContext)) continue;
         // Skip if Timeout is explicitly set to 0 (intentional — using context for cancellation)
         if (/Timeout:\s*0\b/.test(context)) continue;
 
+        // Library constructor functions (NewClient, NewHttpClient) — caller sets timeout
+        const funcContext = lines.slice(Math.max(0, i - 5), i + 1).join(" ");
+        const isFactory = /func\s+(New\w*Client|new\w*Client|Create\w*Client|make\w*Client)\b/.test(funcContext);
+
         findings.push({
           detector: "missing-timeouts",
-          severity: "HIGH",
+          severity: isFactory ? "MEDIUM" : "HIGH",
           file: relPath,
           line: i + 1,
-          message: "http.Client without Timeout — defaults to no timeout",
+          message: isFactory
+            ? "http.Client factory without default Timeout — callers should configure timeout"
+            : "http.Client without Timeout — defaults to no timeout",
           fix: "Add Timeout: 30 * time.Second, or use context.WithTimeout for per-request timeouts",
           source: line.trim(),
         });

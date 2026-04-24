@@ -22,8 +22,12 @@ describe("precision: true positives should be detected", () => {
   const highFindings = allFindings.filter((f) => f.severity === "HIGH");
 
   test("finds missing timeout findings in external fetch calls", () => {
-    const timeouts = highFindings.filter((f) => f.detector === "missing-timeouts");
+    // Only explicit https:// URLs in server-side code are HIGH now
+    // Variable URLs (${this.url}/...) are MEDIUM since they could be internal
+    const timeouts = allFindings.filter((f) => f.detector === "missing-timeouts");
     expect(timeouts.length).toBeGreaterThanOrEqual(4);
+    const highTimeouts = highFindings.filter((f) => f.detector === "missing-timeouts");
+    expect(highTimeouts.length).toBeGreaterThanOrEqual(2);
   });
 
   test("finds silent error swallowing", () => {

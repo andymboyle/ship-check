@@ -83,6 +83,7 @@ export function isTestFile(relPath: string): boolean {
     normalized.includes("/testutil/") ||
     normalized.includes("/testing/") ||
     normalized.includes("/test-integ/") ||
+    normalized.includes("/integration/") ||
     normalized.includes("/benchmark/") ||
     // Go testing convention: files named testing.go (not _test.go)
     relPath.endsWith("/testing.go")
