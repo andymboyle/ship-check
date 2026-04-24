@@ -76,12 +76,6 @@ const JS_DEPRECATED: {
     name: "document.write()",
     replacement: "Use DOM manipulation (createElement, innerHTML) instead",
   },
-  // Regex
-  {
-    pattern: /\bnew RegExp\s*\(\s*[^,)]+\s*,\s*['"`][^'"]*u[^'"]*['"`]\s*\)/,
-    name: "RegExp with 'u' flag",
-    replacement: "Consider using the 'v' flag (ES2024) for improved Unicode support",
-  },
 ];
 
 function detectJsDeprecated(file: SourceFile): Finding[] {

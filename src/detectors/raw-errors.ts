@@ -1,3 +1,4 @@
+import { isJsFile } from "../constants";
 import type { DetectorResult, Finding } from "../types";
 import type { SourceFile } from "../walker";
 
@@ -13,7 +14,7 @@ export function detectRawErrors(files: SourceFile[]): DetectorResult {
   for (const file of files) {
     if (file.isTest) continue;
 
-    if ([".ts", ".tsx", ".js", ".jsx"].includes(file.ext)) {
+    if (isJsFile(file.ext)) {
       findings.push(...detectJsRawErrors(file));
     } else if (file.ext === ".py") {
       findings.push(...detectPythonRawErrors(file));

@@ -16,7 +16,7 @@
 
 Find the reliability problems your linter doesn't catch. Missing timeouts, silent error swallowing, N+1 queries, raw error leaks, hardcoded secrets—the stuff that causes production incidents, not syntax warnings.
 
-Zero dependencies. 9 detectors. 3 languages. Scans 16,000 files in under 3 seconds.
+Zero dependencies. 9 detectors. Scans Python, TypeScript, JavaScript, and Go. 16,000 files in under 3 seconds.
 
 ```bash
 npx ship-check

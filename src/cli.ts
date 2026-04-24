@@ -11,6 +11,7 @@ const markdownMode = args.includes("--markdown") || args.includes("--md");
 const verboseMode = args.includes("--verbose") || args.includes("-v");
 const helpMode = args.includes("--help") || args.includes("-h");
 const listMode = args.includes("--list");
+const versionMode = args.includes("--version") || args.includes("-V");
 const ciMode = args.includes("--ci");
 const fixMode = args.includes("--fix");
 
@@ -38,6 +39,12 @@ const knownDetectors = new Set(listDetectors().map((d) => d.id));
 const detectorArgs = positional.filter((a) => knownDetectors.has(a));
 const pathArgs = positional.filter((a) => !knownDetectors.has(a));
 const rootDir = pathArgs[0] ?? process.cwd();
+
+if (versionMode) {
+  // Read version from package.json at build time — tsup inlines this
+  console.log("0.1.0");
+  process.exit(0);
+}
 
 if (helpMode) {
   console.log(`

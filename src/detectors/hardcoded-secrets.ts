@@ -74,7 +74,7 @@ const SECRET_PATTERNS: {
   },
   // Stripe keys (sk_live_, sk_test_, pk_live_, pk_test_)
   {
-    pattern: /['"`]([sr]k_(?:live|test)_[a-zA-Z0-9]{20,})['"`]/,
+    pattern: /['"`]([sp]k_(?:live|test)_[a-zA-Z0-9]{20,})['"`]/,
     label: "Stripe key",
     severity: "HIGH",
   },
