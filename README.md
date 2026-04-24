@@ -47,6 +47,8 @@ So I automated the detection.
 | **missing-timeouts** | `fetch()`, `httpx`, `requests`, `axios`, Redis, SQLAlchemy without timeout config | Python, JS/TS, Go |
 | **unbounded-queries** | `findMany()` without pagination, N+1 queries in loops, SELECT * over-fetching | JS/TS, Python |
 | **raw-errors** | `{error.message}` in JSX, `traceback.format_exc()` in responses, stack traces in UI | JS/TS, Python |
+| **hardcoded-secrets** | AWS keys, Slack/GitHub/Stripe tokens, passwords in connection strings, JWT tokens | All |
+| **unhandled-async** | `Promise.all` without await/catch, async event handlers without try/catch, fire-and-forget `create_task()` | JS/TS, Python |
 
 Each finding includes severity (HIGH/MEDIUM/LOW), exact file:line, a description of the problem, and a concrete fix.
 
@@ -137,14 +139,14 @@ I ran ship-check against 8 popular open-source projects. **Every one had HIGH-se
 
 | Project | Stack | Files | HIGH | MEDIUM | LOW | Time |
 |---------|-------|-------|------|--------|-----|------|
-| [cal.com](https://github.com/calcom/cal.com) | TS/Next.js | 5,074 | 231 | 99 | 414 | 699ms |
-| [twenty](https://github.com/twentyhq/twenty) | TS/React | 16,665 | 105 | 155 | 1 | 2.1s |
-| [nocodb](https://github.com/nocodb/nocodb) | TS/Node | 1,844 | 192 | 226 | 0 | 479ms |
-| [documenso](https://github.com/documenso/documenso) | TS/Next.js | 1,825 | 50 | 27 | 103 | 321ms |
-| [hoppscotch](https://github.com/hoppscotch/hoppscotch) | TS/Vue | 1,183 | 46 | 24 | 85 | 256ms |
-| [medusa](https://github.com/medusajs/medusa) | TS/Node | 10,638 | 63 | 62 | 0 | 1.6s |
-| [immich](https://github.com/immich-app/immich) | TS/Svelte | 999 | 15 | 25 | 0 | 220ms |
-| [maybe](https://github.com/maybe-finance/maybe) | TS/Next.js | 844 | 5 | 0 | 0 | 85ms |
+| [cal.com](https://github.com/calcom/cal.com) | TS/Next.js | 5,074 | 247 | 103 | 414 | 871ms |
+| [twenty](https://github.com/twentyhq/twenty) | TS/React | 16,665 | 124 | 227 | 1 | 2.5s |
+| [nocodb](https://github.com/nocodb/nocodb) | TS/Node | 1,844 | 221 | 229 | 0 | 617ms |
+| [documenso](https://github.com/documenso/documenso) | TS/Next.js | 1,825 | 53 | 27 | 103 | 343ms |
+| [hoppscotch](https://github.com/hoppscotch/hoppscotch) | TS/Vue | 1,183 | 50 | 32 | 85 | 259ms |
+| [medusa](https://github.com/medusajs/medusa) | TS/Node | 10,638 | 80 | 121 | 0 | 1.7s |
+| [immich](https://github.com/immich-app/immich) | TS/Svelte | 999 | 48 | 55 | 0 | 243ms |
+| [maybe](https://github.com/maybe-finance/maybe) | TS/Next.js | 844 | 9 | 1 | 0 | 82ms |
 
 Test files are automatically excluded—these are all production code findings.
 

@@ -53,16 +53,18 @@ export interface SourceFile {
  * Check if a file path indicates a test file.
  */
 export function isTestFile(relPath: string): boolean {
+  // Normalize: add leading slash so patterns match both "e2e/foo" and "src/e2e/foo"
+  const normalized = "/" + relPath;
   return (
     relPath.includes(".test.") ||
     relPath.includes(".spec.") ||
-    relPath.includes("__tests__/") ||
-    relPath.includes("__mocks__/") ||
-    relPath.includes("/test/") ||
-    relPath.includes("/tests/") ||
-    relPath.includes("/e2e/") ||
-    relPath.includes("playwright/") ||
-    relPath.includes("/fixtures/") ||
+    normalized.includes("/__tests__/") ||
+    normalized.includes("/__mocks__/") ||
+    normalized.includes("/test/") ||
+    normalized.includes("/tests/") ||
+    normalized.includes("/e2e/") ||
+    normalized.includes("/playwright/") ||
+    normalized.includes("/fixtures/") ||
     relPath.includes(".stories.")
   );
 }

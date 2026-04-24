@@ -5,6 +5,8 @@ import { detectSilentErrors } from "./detectors/silent-errors";
 import { detectMissingTimeouts } from "./detectors/missing-timeouts";
 import { detectUnboundedQueries } from "./detectors/unbounded-queries";
 import { detectRawErrors } from "./detectors/raw-errors";
+import { detectHardcodedSecrets } from "./detectors/hardcoded-secrets";
+import { detectUnhandledAsync } from "./detectors/unhandled-async";
 import type { SourceFile } from "./walker";
 
 // Registry of all detectors
@@ -37,6 +39,18 @@ const DETECTORS: {
     name: "Raw Error Leaks",
     description: "Technical error messages and stack traces shown to users",
     run: detectRawErrors,
+  },
+  {
+    id: "hardcoded-secrets",
+    name: "Hardcoded Secrets",
+    description: "API keys, tokens, passwords, and secrets in source code",
+    run: detectHardcodedSecrets,
+  },
+  {
+    id: "unhandled-async",
+    name: "Unhandled Async Errors",
+    description: "Fire-and-forget promises, async handlers without error catching",
+    run: detectUnhandledAsync,
   },
 ];
 

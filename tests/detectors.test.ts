@@ -201,6 +201,86 @@ describe("raw-errors detector", () => {
   });
 });
 
+describe("hardcoded-secrets detector", () => {
+  const result = scan({
+    rootDir: join(FIXTURES, "secrets"),
+    detectors: ["hardcoded-secrets"],
+  });
+  const findings = result.results[0].findings;
+
+  test("finds hardcoded password", () => {
+    const pwFindings = findings.filter((f) =>
+      f.message.includes("password"),
+    );
+    expect(pwFindings.length).toBeGreaterThan(0);
+  });
+
+  test("finds Slack token", () => {
+    const slack = findings.filter((f) =>
+      f.message.includes("Slack"),
+    );
+    expect(slack.length).toBeGreaterThan(0);
+  });
+
+  test("finds database password in connection string", () => {
+    const db = findings.filter((f) =>
+      f.message.includes("Database password"),
+    );
+    expect(db.length).toBeGreaterThan(0);
+  });
+
+  test("does NOT flag process.env reads", () => {
+    const envFindings = findings.filter((f) =>
+      f.source?.includes("process.env"),
+    );
+    expect(envFindings.length).toBe(0);
+  });
+
+  test("does NOT flag placeholder values", () => {
+    const placeholders = findings.filter((f) =>
+      f.source?.includes("your-api-key-here"),
+    );
+    expect(placeholders.length).toBe(0);
+  });
+});
+
+describe("unhandled-async detector", () => {
+  const result = scan({
+    rootDir: join(FIXTURES, "async"),
+    detectors: ["unhandled-async"],
+  });
+  const findings = result.results[0].findings;
+
+  test("finds Promise.all without await or catch", () => {
+    const promiseAll = findings.filter((f) =>
+      f.message.includes("Promise.all"),
+    );
+    expect(promiseAll.length).toBe(1);
+  });
+
+  test("finds async event handler without try/catch", () => {
+    const handlers = findings.filter((f) =>
+      f.message.includes("event handler"),
+    );
+    expect(handlers.length).toBe(1);
+  });
+
+  test("does NOT flag awaited Promise.all", () => {
+    // "await Promise.all" should not be flagged
+    const awaited = findings.filter((f) =>
+      f.source?.includes("await Promise.all"),
+    );
+    expect(awaited.length).toBe(0);
+  });
+
+  test("does NOT flag Promise.all with .catch", () => {
+    const caught = findings.filter((f) =>
+      f.source?.includes(".catch"),
+    );
+    expect(caught.length).toBe(0);
+  });
+});
+
 describe("clean codebase", () => {
   const result = scan({
     rootDir: join(FIXTURES, "clean"),
