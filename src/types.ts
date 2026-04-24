@@ -9,6 +9,17 @@ export interface Finding {
   fix: string;
   /** The source line that triggered the finding */
   source?: string;
+  /** Whether this finding can be auto-fixed with --fix */
+  fixable?: boolean;
+  /** Internal: the pattern that matched, used by the fixer */
+  _fixId?: string;
+}
+
+export interface FixResult {
+  file: string;
+  line: number;
+  before: string;
+  after: string;
 }
 
 export interface DetectorResult {

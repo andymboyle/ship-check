@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { scan, listDetectors } from "./scanner";
 import { formatSummary, formatVerbose, formatJSON, formatMarkdown } from "./formatter";
+import { applyFixes } from "./fixer";
 
 const args = process.argv.slice(2);
 
@@ -11,6 +12,7 @@ const verboseMode = args.includes("--verbose") || args.includes("-v");
 const helpMode = args.includes("--help") || args.includes("-h");
 const listMode = args.includes("--list");
 const ciMode = args.includes("--ci");
+const fixMode = args.includes("--fix");
 
 // --severity=HIGH (filter findings)
 const severityArg = args.find((a) => a.startsWith("--severity="));
@@ -54,6 +56,7 @@ ${listDetectors().map((d) => `    ${d.id.padEnd(22)} ${d.description}`).join("\n
     --severity=HIGH         Only show findings at this severity or above
     --only=<detector>       Run only specific detectors (repeatable)
     --exclude=<pattern>     Skip files/directories matching pattern (repeatable)
+    --fix                   Auto-fix findings where possible (currently: missing timeouts)
     --ci                    Exit code 1 if HIGH findings exist
     --list                  List available detectors
     -h, --help              Show this help message
@@ -62,8 +65,8 @@ ${listDetectors().map((d) => `    ${d.id.padEnd(22)} ${d.description}`).join("\n
     npx ship-check                              Run all detectors (summary)
     npx ship-check silent-errors                Run one detector
     npx ship-check --verbose                    Full details
-    npx ship-check --only=silent-errors --only=missing-timeouts
-    npx ship-check src/api/                     Scan a specific directory
+    npx ship-check --fix                        Auto-fix what's safe to fix
+    npx ship-check missing-timeouts --fix       Fix only timeouts
     npx ship-check --md > audit-report.md       Save a report
     npx ship-check --ci --severity=HIGH         Fail CI on HIGH findings
 
@@ -108,6 +111,30 @@ if (severityFilter) {
   }
 }
 
+// --fix mode: apply auto-fixes before reporting
+if (fixMode) {
+  const allFindings = result.results.flatMap((r) => r.findings);
+  const fixable = allFindings.filter((f) => f.fixable);
+
+  if (fixable.length === 0) {
+    console.log("No auto-fixable findings found.");
+  } else {
+    console.log(`\n🔧 Applying ${fixable.length} auto-fixes...\n`);
+    const fixes = applyFixes(rootDir, allFindings);
+
+    for (const fix of fixes) {
+      console.log(`  ✅ ${fix.file}:${fix.line}`);
+      console.log(`     - ${fix.before}`);
+      console.log(`     + ${fix.after}`);
+      console.log("");
+    }
+
+    const skipped = fixable.length - fixes.length;
+    console.log(`${fixes.length} file(s) fixed.${skipped > 0 ? ` ${skipped} skipped (multi-line or complex calls).` : ""}`);
+    console.log("");
+  }
+}
+
 // Output
 if (jsonMode) {
   console.log(formatJSON(result));
@@ -115,7 +142,8 @@ if (jsonMode) {
   console.log(formatMarkdown(result));
 } else if (verboseMode) {
   console.log(formatVerbose(result));
-} else {
+} else if (!fixMode) {
+  // Don't show summary after --fix (the fix output is the report)
   console.log(formatSummary(result));
 }
 

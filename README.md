@@ -75,6 +75,8 @@ npm install --save-dev ship-check
 ship-check                              # Run all detectors (summary)
 ship-check --verbose                    # Full details for every finding
 ship-check silent-errors                # Run one detector
+ship-check --fix                        # Auto-fix what's safe to fix
+ship-check missing-timeouts --fix       # Fix only timeouts
 ship-check --severity=HIGH              # Only show HIGH severity
 ship-check src/api/                     # Scan a specific directory
 ship-check --md > report.md             # Markdown report
@@ -90,8 +92,49 @@ ship-check --ci                         # Exit code 1 if HIGH findings exist
 | `--severity=HIGH` | Only show HIGH (or HIGH+MEDIUM) |
 | `--only=<detector>` | Run specific detectors (repeatable) |
 | `--exclude=<pattern>` | Skip files/directories (repeatable) |
+| `--fix` | Auto-fix findings where safe (currently: missing timeouts) |
 | `--ci` | Exit code 1 if HIGH findings exist |
 | `--list` | List available detectors |
+
+### Auto-fix
+
+`--fix` applies safe, one-line fixes and shows you exactly what changed:
+
+```
+$ ship-check missing-timeouts --fix
+
+🔧 Applying 4 auto-fixes...
+
+  ✅ src/api.ts:1
+     - const res = await fetch("https://api.example.com/data");
+     + const res = await fetch("https://api.example.com/data", { signal: AbortSignal.timeout(30_000) });
+
+  ✅ src/client.py:4
+     - client = httpx.AsyncClient()
+     + client = httpx.AsyncClient(timeout=30.0)
+
+  ✅ src/client.py:5
+     - response = requests.get("https://api.example.com/data")
+     + response = requests.get("https://api.example.com/data", timeout=30)
+
+4 file(s) fixed.
+```
+
+Currently auto-fixable:
+
+| Pattern | Fix applied |
+|---------|-----------|
+| `fetch(url)` | Adds `{ signal: AbortSignal.timeout(30_000) }` |
+| `fetch(url, { opts })` | Adds `signal: AbortSignal.timeout(30_000)` to opts |
+| `httpx.AsyncClient()` | Adds `timeout=30.0` |
+| `httpx.Client()` | Adds `timeout=30.0` |
+| `requests.get/post(url)` | Adds `timeout=30` |
+| `aiohttp.ClientSession()` | Adds `timeout=aiohttp.ClientTimeout(total=30)` |
+| `redis.Redis()` | Adds `socket_timeout=5, socket_connect_timeout=5` |
+| `axios.create({})` | Adds `timeout: 30_000` |
+| `new Redis()` | Adds `{ connectTimeout: 5000 }` |
+
+Multi-line calls and complex argument patterns are skipped (reported but not auto-fixed).
 
 ### CI / GitHub Action
 

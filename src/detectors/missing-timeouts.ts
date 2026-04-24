@@ -36,36 +36,42 @@ const PYTHON_PATTERNS: {
   service: string;
   fix: string;
   timeoutParam: string;
+  fixId?: string;
 }[] = [
   {
     pattern: /httpx\.(?:AsyncClient|Client)\s*\(/,
     service: "httpx",
     fix: "Add timeout=30.0 to the constructor",
     timeoutParam: "timeout",
+    fixId: "httpx-no-timeout",
   },
   {
     pattern: /requests\.(get|post|put|patch|delete|head|options)\s*\(/,
     service: "requests",
     fix: "Add timeout=30 to the call",
     timeoutParam: "timeout",
+    fixId: "requests-no-timeout",
   },
   {
     pattern: /aiohttp\.ClientSession\s*\(/,
     service: "aiohttp",
     fix: "Add timeout=aiohttp.ClientTimeout(total=30) to the constructor",
     timeoutParam: "timeout",
+    fixId: "aiohttp-no-timeout",
   },
   {
     pattern: /redis\.(?:Redis|StrictRedis)\s*\(/,
     service: "Redis",
     fix: "Add socket_timeout=5, socket_connect_timeout=5",
     timeoutParam: "socket_timeout",
+    fixId: "redis-py-no-timeout",
   },
   {
     pattern: /create_engine\s*\(/,
     service: "SQLAlchemy",
     fix: "Add pool_timeout=30, connect_args={'connect_timeout': 10}",
     timeoutParam: "pool_timeout",
+    // Not auto-fixable — create_engine has complex args
   },
 ];
 
@@ -91,6 +97,8 @@ function detectPythonTimeouts(file: SourceFile): Finding[] {
         message: `${p.service} call without timeout — will hang indefinitely on downstream outage`,
         fix: p.fix,
         source: line.trim(),
+        fixable: !!p.fixId,
+        _fixId: p.fixId,
       });
     }
   }
@@ -105,36 +113,42 @@ const JS_PATTERNS: {
   service: string;
   fix: string;
   timeoutIndicators: string[];
+  fixId?: string;
 }[] = [
   {
     pattern: /\bfetch\s*\(/,
     service: "fetch",
     fix: "Add { signal: AbortSignal.timeout(30_000) } to the options",
     timeoutIndicators: ["AbortSignal", "signal", "timeout", "AbortController"],
+    fixId: "fetch-no-timeout",
   },
   {
     pattern: /axios\.create\s*\(/,
     service: "axios",
     fix: "Add timeout: 30_000 to the config",
     timeoutIndicators: ["timeout"],
+    fixId: "axios-create-no-timeout",
   },
   {
     pattern: /axios\.(get|post|put|patch|delete)\s*\(/,
     service: "axios",
     fix: "Add { timeout: 30_000 } to the config parameter",
     timeoutIndicators: ["timeout"],
+    // Not auto-fixable — per-call axios has variable arg positions
   },
   {
     pattern: /new\s+Redis\s*\(/,
     service: "Redis (ioredis)",
     fix: "Add connectTimeout: 5000 to the config",
     timeoutIndicators: ["connectTimeout", "commandTimeout"],
+    fixId: "ioredis-no-timeout",
   },
   {
     pattern: /createClient\s*\(\s*\{/,
     service: "Redis (node-redis)",
     fix: "Add socket: { connectTimeout: 5000 }",
     timeoutIndicators: ["connectTimeout", "socket_timeout"],
+    // Not auto-fixable — nested config structure
   },
 ];
 
@@ -166,6 +180,8 @@ function detectJsTimeouts(file: SourceFile): Finding[] {
         message: `${p.service} call without timeout — will hang indefinitely on downstream outage`,
         fix: p.fix,
         source: trimmed,
+        fixable: !!p.fixId,
+        _fixId: p.fixId,
       });
     }
   }
