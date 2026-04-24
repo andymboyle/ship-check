@@ -40,10 +40,13 @@ function detectJsRawErrors(file: SourceFile): Finding[] {
     // error.message in JSX (rendered to users)
     // Only match explicit error variable names — "e" is too broad (could be event, email, etc.)
     if (/\{[^}]*\b(error|err)\.message\b[^}]*\}/.test(trimmed)) {
-      // Check if this is in a JSX/template context (not just logging)
-      // Look for surrounding JSX indicators
+      // Skip server-side logging — logger.error, console.error, etc. are fine
+      if (/\b(logger|log|console)\.(error|warn|info|debug|exception)\b/.test(trimmed)) continue;
+      if (/\bthis\.logger\b/.test(trimmed)) continue;
+
+      // Require strong JSX context — must be inside a return with actual JSX elements
       const context = lines.slice(Math.max(0, i - 5), Math.min(i + 5, lines.length)).join("\n");
-      const isJsx = /\breturn\s*\(|<\w|className|<\//.test(context);
+      const isJsx = /<\w/.test(context) && (/className/.test(context) || /<\//.test(context));
 
       if (isJsx) {
         findings.push({
@@ -58,17 +61,25 @@ function detectJsRawErrors(file: SourceFile): Finding[] {
       }
     }
 
-    // error.stack in UI
+    // error.stack in UI — skip logging
     if (/\{[^}]*\b(error|err)\.stack\b[^}]*\}/.test(trimmed)) {
-      findings.push({
-        detector: "raw-errors",
-        severity: "HIGH",
-        file: relPath,
-        line: i + 1,
-        message: "Stack trace rendered in UI — exposes internals to users",
-        fix: "Never show stack traces to users. Log them server-side.",
-        source: trimmed,
-      });
+      if (/\b(logger|log|console)\.(error|warn|info|debug|exception)\b/.test(trimmed)) continue;
+      if (/\bthis\.logger\b/.test(trimmed)) continue;
+
+      const context = lines.slice(Math.max(0, i - 5), Math.min(i + 5, lines.length)).join("\n");
+      const isJsx = /<\w/.test(context) && (/className/.test(context) || /<\//.test(context));
+
+      if (isJsx) {
+        findings.push({
+          detector: "raw-errors",
+          severity: "HIGH",
+          file: relPath,
+          line: i + 1,
+          message: "Stack trace rendered in UI — exposes internals to users",
+          fix: "Never show stack traces to users. Log them server-side.",
+          source: trimmed,
+        });
+      }
     }
 
     // toast/notification with error.message

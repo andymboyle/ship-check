@@ -42,8 +42,8 @@ function detectJsQueryIssues(file: SourceFile): Finding[] {
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
 
-    // Track loop context
-    if (/\b(for\s*\(|\.forEach\s*\(|\.map\s*\(|while\s*\(|\.reduce\s*\()/.test(trimmed)) {
+    // Track loop context — only real sequential loops, not .map()/.reduce() (which run in parallel via Promise.all)
+    if (/\b(for\s*\(|for\s*\.\.\.|\.forEach\s*\(|while\s*\(|do\s*\{)/.test(trimmed)) {
       if (loopDepth === 0) loopStartLine = i;
       loopDepth++;
     }
@@ -72,22 +72,36 @@ function detectJsQueryIssues(file: SourceFile): Finding[] {
         });
       }
 
-      // N+1: findMany inside a loop
+      // N+1: findMany inside a loop — but only if the loop is data-driven
       if (loopDepth > 0) {
-        findings.push({
-          detector: "unbounded-queries",
-          severity: "HIGH",
-          file: relPath,
-          line: i + 1,
-          message: "Database query inside a loop (N+1) — each iteration fires a separate query",
-          fix: "Batch the query outside the loop using findMany with an IN clause, or use include/join",
-          source: trimmed,
-        });
+        // Check if the loop iterates over a small hardcoded array (not a real N+1 concern)
+        const loopLine = loopStartLine >= 0 ? lines[loopStartLine].trim() : "";
+        const isSmallFixedLoop = /\bof\s*\[/.test(loopLine) || // for (const x of [a, b, c])
+          /\b(in|of)\s+\w+\s*\)/.test(loopLine) && /\bconst\s+\w+\s*=\s*\[/.test(
+            lines.slice(Math.max(0, loopStartLine - 5), loopStartLine).join(" ")
+          );
+
+        if (!isSmallFixedLoop) {
+          findings.push({
+            detector: "unbounded-queries",
+            severity: "HIGH",
+            file: relPath,
+            line: i + 1,
+            message: "Database query inside a loop (N+1) — each iteration fires a separate query",
+            fix: "Batch the query outside the loop using findMany with an IN clause, or use include/join",
+            source: trimmed,
+          });
+        }
       }
     }
 
     // findUnique/findFirst inside a loop
     if (/\.(findUnique|findFirst)\s*\(/.test(trimmed) && loopDepth > 0) {
+      // Skip small fixed loops
+      const loopLine = loopStartLine >= 0 ? lines[loopStartLine].trim() : "";
+      const isSmallFixedLoop = /\bof\s*\[/.test(loopLine);
+      if (isSmallFixedLoop) continue;
+
       findings.push({
         detector: "unbounded-queries",
         severity: "HIGH",

@@ -156,12 +156,17 @@ function detectJsTimeouts(file: SourceFile): Finding[] {
   const findings: Finding[] = [];
   const { lines, relPath } = file;
 
+  // Skip type definition files — they declare signatures, not make calls
+  if (relPath.endsWith(".d.ts")) return findings;
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
 
-    // Skip comment lines and imports
+    // Skip comment lines, imports, type definitions, and string mentions
     if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("import ")) continue;
+    if (trimmed.startsWith("declare ") || trimmed.startsWith("function ") && relPath.endsWith(".d.ts")) continue;
+    if (trimmed.startsWith("return \"") || trimmed.startsWith("return '") || trimmed.startsWith("return `")) continue;
 
     for (const p of JS_PATTERNS) {
       if (!p.pattern.test(line)) continue;
@@ -171,6 +176,19 @@ function detectJsTimeouts(file: SourceFile): Finding[] {
       const context = lines.slice(i, contextEnd).join(" ");
 
       if (p.timeoutIndicators.some((t) => context.includes(t))) continue;
+
+      // For fetch: skip tRPC client calls, same-origin/internal calls, and asset fetches
+      if (p.service === "fetch") {
+        // tRPC .fetch() calls (e.g., utils.viewer.bookings.find.fetch)
+        if (/\w+\.\w+\.fetch\s*\(/.test(trimmed) && !/\bfetch\s*\(["'`]/.test(trimmed)) continue;
+        // Fetching local/internal URLs (own webapp, /api/, /fonts/)
+        if (/fetch\s*\(\s*["'`]\/(api|fonts|static|assets)/.test(trimmed)) continue;
+        if (/fetch\s*\(\s*["'`]\.\//.test(trimmed)) continue;
+        // Font/image loading patterns
+        if (/\.(ttf|woff|woff2|otf|png|jpg|svg)\b/.test(trimmed)) continue;
+        // tRPC createClient setup (no actual network call)
+        if (/createClient\s*\(/.test(trimmed)) continue;
+      }
 
       findings.push({
         detector: "missing-timeouts",

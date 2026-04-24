@@ -40,10 +40,15 @@ function detectJsUnhandledAsync(file: SourceFile): Finding[] {
     // Pattern: someAsyncFunction(); (no await, no .then, no .catch on the line or next)
     // This is hard to detect reliably, so focus on the clearest patterns:
 
-    // 1. Promise.all/allSettled/race without catch
-    if (/Promise\.(all|race|allSettled)\s*\(/.test(trimmed)) {
-      // Check if it's awaited or has .catch
-      if (!/\bawait\b/.test(trimmed) && !/\.catch\b/.test(trimmed)) {
+    // 1. Promise.all/race without error handling — only flag true fire-and-forget
+    // Skip Promise.allSettled — it never rejects, so fire-and-forget is safe
+    if (/Promise\.(all|race)\s*\(/.test(trimmed) && !/Promise\.allSettled/.test(trimmed)) {
+      const hasAwait = /\bawait\b/.test(trimmed);
+      const hasReturn = /\breturn\b/.test(trimmed);
+      const hasCatch = /\.catch\b/.test(trimmed);
+      const hasAssignment = /\b(const|let|var)\s+\w+\s*=/.test(trimmed) || /^\w+\s*=/.test(trimmed);
+
+      if (!hasAwait && !hasReturn && !hasCatch && !hasAssignment) {
         const nextLines = lines.slice(i, Math.min(i + 3, lines.length)).join(" ");
         if (!/\.catch\b/.test(nextLines) && !/\.then\b/.test(nextLines)) {
           findings.push({
@@ -51,8 +56,8 @@ function detectJsUnhandledAsync(file: SourceFile): Finding[] {
             severity: "HIGH",
             file: relPath,
             line: i + 1,
-            message: "Promise.all/race without await or .catch — rejected promises will be unhandled",
-            fix: "Add await or .catch() to handle errors",
+            message: "Promise.all/race without await, return, or .catch — rejected promises silently lost",
+            fix: "Add await or .catch() to handle errors, or return the promise to the caller",
             source: trimmed,
           });
         }

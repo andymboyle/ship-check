@@ -156,6 +156,16 @@ function detectJsSilentErrors(file: SourceFile): Finding[] {
     const catchLine = i;
     const indent = lines[i].length - lines[i].trimStart().length;
 
+    // Look at the try block above — some patterns are safe to silence
+    const tryContext = lines.slice(Math.max(0, i - 10), i).join("\n");
+    const isSafeTryPattern =
+      /JSON\.parse\b/.test(tryContext) ||           // try to parse JSON, ignore failure
+      /\.json\(\)/.test(tryContext) ||               // response.json() that might fail
+      /\bdelete\b|\bremove\b|\bclean/i.test(tryContext) || // cleanup/teardown code
+      /\bdisconnect\b|\bclose\b|\bdestroy\b/i.test(tryContext) || // connection cleanup
+      /\blocalStorage\b|\bsessionStorage\b/.test(tryContext) || // storage access (can throw in Safari private mode)
+      /\bnavigator\b/.test(tryContext); // navigator API (clipboard, etc. — can throw)
+
     // Collect the catch block body
     // Track brace depth to find the end of the catch block
     let braceDepth = 0;
@@ -182,17 +192,29 @@ function detectJsSilentErrors(file: SourceFile): Finding[] {
       if (foundOpen && braceDepth === 0) break;
     }
 
-    // Empty catch block
+    // Empty catch block — downgrade to MEDIUM if the try block is a safe pattern
     if (bodyLines.length === 0) {
-      findings.push({
-        detector: "silent-errors",
-        severity: "HIGH",
-        file: relPath,
-        line: catchLine + 1,
-        message: "Empty catch block — errors silently swallowed",
-        fix: "Add error handling: log the error or re-throw",
-        source: trimmed,
-      });
+      if (!isSafeTryPattern) {
+        findings.push({
+          detector: "silent-errors",
+          severity: "HIGH",
+          file: relPath,
+          line: catchLine + 1,
+          message: "Empty catch block — errors silently swallowed",
+          fix: "Add error handling: log the error or re-throw",
+          source: trimmed,
+        });
+      } else {
+        findings.push({
+          detector: "silent-errors",
+          severity: "LOW",
+          file: relPath,
+          line: catchLine + 1,
+          message: "Empty catch block on safe pattern (JSON parse/cleanup) — likely intentional",
+          fix: "Add a comment explaining why the error is ignored, or add minimal logging",
+          source: trimmed,
+        });
+      }
       continue;
     }
 

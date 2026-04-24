@@ -53,8 +53,10 @@ const SECRET_PATTERNS: {
     severity: "HIGH",
   },
   // Password assignments: password = "actual-value"
+  // Must be a direct value assignment, not an enum or dictionary word
+  // Require at least one digit or special char (real passwords have mixed chars)
   {
-    pattern: /(?:password|passwd|pwd)\s*[:=]\s*['"`]([^'"`\s]{8,})['"`]/i,
+    pattern: /(?:^|[\s,{(])(?:password|passwd|pwd)\s*[:=]\s*['"`]([^'"`\s]*[0-9!@#$%^&*][^'"`\s]*)['"`]/i,
     label: "Hardcoded password",
     severity: "HIGH",
   },
@@ -109,6 +111,10 @@ const IGNORE_CONTEXTS = [
   /TODO|FIXME|REPLACE/i,
   /password[_-]?(min|max|length|policy|regex|pattern|hash|salt|format|strength|rule|require)/i,
   /\btype\s*[:=]/,             // Type annotations/definitions, not values
+  /\benum\b/i,                 // Enum definitions
+  /ErrorCode|Error\w*\s*=/,    // Error code enums/constants
+  /\binvalid[_-]/i,            // "invalid_token", "invalid_access_token" — test values
+  /\b(Incorrect|Missing|Wrong|Bad|Invalid)\w*\s*=/i,  // Error constant names
 ];
 
 function detectSecretPatterns(file: SourceFile): Finding[] {
