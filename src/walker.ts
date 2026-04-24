@@ -77,6 +77,7 @@ export function isTestFile(relPath: string): boolean {
     normalized.includes("/migration/") ||
     normalized.includes("/examples/") ||
     normalized.includes("/example/") ||
+    normalized.includes("/docs_src/") ||
     normalized.includes("/demo/") ||
     normalized.includes("/sample/") ||
     normalized.includes("/samples/") ||

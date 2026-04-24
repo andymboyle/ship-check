@@ -10,6 +10,9 @@ import { detectUnhandledAsync } from "./detectors/unhandled-async";
 import { detectConsoleLog } from "./detectors/console-log";
 import { detectAsyncWithoutAwait } from "./detectors/async-without-await";
 import { detectDeprecatedApis } from "./detectors/deprecated-apis";
+import { detectUnsafeSql } from "./detectors/unsafe-sql";
+import { detectUncheckedAccess } from "./detectors/unchecked-access";
+import { detectInfiniteLoopRisk } from "./detectors/infinite-loop-risk";
 import type { SourceFile } from "./walker";
 
 // Registry of all detectors
@@ -72,6 +75,24 @@ const DETECTORS: {
     name: "Deprecated API Usage",
     description: "Deprecated APIs with well-known replacements",
     run: detectDeprecatedApis,
+  },
+  {
+    id: "unsafe-sql",
+    name: "Unsafe SQL Construction",
+    description: "SQL queries built with string interpolation — injection risk",
+    run: detectUnsafeSql,
+  },
+  {
+    id: "unchecked-access",
+    name: "Unchecked Access",
+    description: "Array/object access that crashes on null/undefined/empty",
+    run: detectUncheckedAccess,
+  },
+  {
+    id: "infinite-loop-risk",
+    name: "Infinite Loop Risk",
+    description: "Loops without visible break conditions or retry limits",
+    run: detectInfiniteLoopRisk,
   },
 ];
 
