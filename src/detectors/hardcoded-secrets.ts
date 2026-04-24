@@ -115,6 +115,7 @@ const IGNORE_CONTEXTS = [
   /ErrorCode|Error\w*\s*=/,    // Error code enums/constants
   /\binvalid[_-]/i,            // "invalid_token", "invalid_access_token" — test values
   /\b(Incorrect|Missing|Wrong|Bad|Invalid)\w*\s*=/i,  // Error constant names
+  /\$\{/,                      // Template variable references: "${VAR}"
 ];
 
 function detectSecretPatterns(file: SourceFile): Finding[] {
