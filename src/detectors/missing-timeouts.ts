@@ -188,6 +188,14 @@ function detectJsTimeouts(file: SourceFile): Finding[] {
         if (/\.(ttf|woff|woff2|otf|png|jpg|svg)\b/.test(trimmed)) continue;
         // tRPC createClient setup (no actual network call)
         if (/createClient\s*\(/.test(trimmed)) continue;
+        // fetch() mentioned inside a string literal (not an actual call)
+        if (/["'`].*fetch\s*\(.*["'`]/.test(trimmed)) continue;
+      }
+
+      // For Redis createClient: require redis import context (not trpc/graphql createClient)
+      if (p.service === "Redis (node-redis)") {
+        const fileContext = lines.slice(0, Math.min(20, lines.length)).join("\n");
+        if (!/\bredis\b/i.test(fileContext)) continue;
       }
 
       findings.push({

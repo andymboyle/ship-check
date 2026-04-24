@@ -7,6 +7,9 @@ import { detectUnboundedQueries } from "./detectors/unbounded-queries";
 import { detectRawErrors } from "./detectors/raw-errors";
 import { detectHardcodedSecrets } from "./detectors/hardcoded-secrets";
 import { detectUnhandledAsync } from "./detectors/unhandled-async";
+import { detectConsoleLog } from "./detectors/console-log";
+import { detectAsyncWithoutAwait } from "./detectors/async-without-await";
+import { detectDeprecatedApis } from "./detectors/deprecated-apis";
 import type { SourceFile } from "./walker";
 
 // Registry of all detectors
@@ -51,6 +54,24 @@ const DETECTORS: {
     name: "Unhandled Async Errors",
     description: "Fire-and-forget promises, async handlers without error catching",
     run: detectUnhandledAsync,
+  },
+  {
+    id: "console-log",
+    name: "Console.log in Production",
+    description: "console.log left in production code — leftover debugging",
+    run: detectConsoleLog,
+  },
+  {
+    id: "async-without-await",
+    name: "Async Without Await",
+    description: "Async functions that never use await — unnecessary or missing await",
+    run: detectAsyncWithoutAwait,
+  },
+  {
+    id: "deprecated-apis",
+    name: "Deprecated API Usage",
+    description: "Deprecated APIs with well-known replacements",
+    run: detectDeprecatedApis,
   },
 ];
 

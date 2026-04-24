@@ -197,7 +197,7 @@ function detectJsSilentErrors(file: SourceFile): Finding[] {
       if (!isSafeTryPattern) {
         findings.push({
           detector: "silent-errors",
-          severity: "HIGH",
+          severity: "MEDIUM",
           file: relPath,
           line: catchLine + 1,
           message: "Empty catch block — errors silently swallowed",

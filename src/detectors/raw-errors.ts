@@ -43,6 +43,8 @@ function detectJsRawErrors(file: SourceFile): Finding[] {
       // Skip server-side logging — logger.error, console.error, etc. are fine
       if (/\b(logger|log|console)\.(error|warn|info|debug|exception)\b/.test(trimmed)) continue;
       if (/\bthis\.logger\b/.test(trimmed)) continue;
+      // Skip i18n-wrapped messages — {t(error.message)} goes through translation
+      if (/\bt\(\s*(error|err)\.message\s*\)/.test(trimmed)) continue;
 
       // Require strong JSX context — must be inside a return with actual JSX elements
       const context = lines.slice(Math.max(0, i - 5), Math.min(i + 5, lines.length)).join("\n");
